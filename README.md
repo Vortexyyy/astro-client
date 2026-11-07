@@ -219,3 +219,16 @@ The mod builds for 1.21.11, 1.21.10 and 1.21.1. Adding another 1.21.x version is
 `versions/<mc>/gradle.properties` plus, if an API changed, a shim in its folder. 26.x ships
 unobfuscated with Mojang names (no Yarn), so it needs its own mappings setup. The launcher can
 run any version; Astro's mod is simply skipped where no build exists.
+
+## Updates and releasing
+
+Source lives in the private `Vortexyyy/astro-client` repo. Installers are published to the public
+`Vortexyyy/astro-releases` repo, which holds builds only, so the app needs no token to update.
+Installed launchers check it on startup and every 4 hours, download new versions in the background,
+and install them when Astro closes (or straight away from **Settings → Launcher updates**).
+
+To ship a new version, bump `version` in `launcher/package.json`, then from `launcher/`:
+
+```bash
+bash scripts/release.sh
+```
