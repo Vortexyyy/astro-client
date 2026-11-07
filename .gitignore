@@ -1,0 +1,11 @@
+# dependencies and build output
+node_modules/
+launcher/out/
+launcher/dist/
+mod/build/
+mod/versions/*/build/
+mod/.gradle/
+mod/run/
+.gradle/
+*.log
+graphify-out/

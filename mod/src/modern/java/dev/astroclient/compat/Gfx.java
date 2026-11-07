@@ -1,0 +1,41 @@
+package dev.astroclient.compat;
+
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.util.Identifier;
+
+/** Version shim (1.21.9+): the GUI uses a 2D matrix stack and render pipelines. */
+public final class Gfx {
+    private Gfx() {}
+
+    public static void push(DrawContext c) {
+        c.getMatrices().pushMatrix();
+    }
+
+    public static void pop(DrawContext c) {
+        c.getMatrices().popMatrix();
+    }
+
+    public static void translate(DrawContext c, float x, float y) {
+        c.getMatrices().translate(x, y);
+    }
+
+    public static void scale(DrawContext c, float x, float y) {
+        c.getMatrices().scale(x, y);
+    }
+
+    /** 1.21.6+ already batches all GUI drawing per frame. */
+    public static void batch(DrawContext c, Runnable drawing) {
+        drawing.run();
+    }
+
+    public static float guiScale() {
+        return MinecraftClient.getInstance().getWindow().getScaleFactor();
+    }
+
+    /** Draws the region (u, v, w, h) of a texW×texH texture at (x, y), one texel per GUI pixel. */
+    public static void texture(DrawContext c, Identifier id, int x, int y, float u, float v, int w, int h, int texW, int texH) {
+        c.drawTexture(RenderPipelines.GUI_TEXTURED, id, x, y, u, v, w, h, texW, texH);
+    }
+}

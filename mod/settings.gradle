@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'astroclient'
+
+// One subproject per Minecraft version. Each compiles src/common plus the shim folder named by
+// its `compat` property (legacy = 1.21.1, modern = 1.21.9+), plus `extra` for single-version tweaks.
+['1.21.1', '1.21.10', '1.21.11'].each { v ->
+    def name = 'mc' + v.replace('.', '_')
+    include name
+    project(":$name").projectDir = file("versions/$v")
+}

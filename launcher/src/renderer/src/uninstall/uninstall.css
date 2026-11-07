@@ -1,0 +1,205 @@
+/* Astro uninstaller window (shares tokens and controls with styles.css) */
+.uninstall {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 48px 1fr auto;
+  grid-template-columns: minmax(0, 1fr); /* long paths must not widen the window */
+  background: radial-gradient(600px 400px at 100% 0%, #24104f 0%, transparent 60%),
+    radial-gradient(500px 400px at 0% 100%, #062a3a 0%, transparent 60%), var(--bg);
+}
+
+.u-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 18px;
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+}
+
+.u-mark {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, #fff 0%, var(--accent-2) 22%, var(--accent) 62%, #2b0f66 100%);
+  box-shadow: 0 0 14px rgba(139, 92, 246, 0.7);
+}
+
+.u-mark span {
+  position: absolute;
+  inset: 7px -5px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(34, 211, 238, 0.75);
+  transform: rotate(-20deg);
+}
+
+.u-brand {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  font-size: 13px;
+}
+
+.u-close {
+  margin-left: auto;
+  width: 46px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  -webkit-app-region: no-drag;
+}
+
+.u-close svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+
+.u-close:hover:not(:disabled) {
+  background: #e81123;
+  color: #fff;
+}
+
+.u-body {
+  padding: 26px 28px 10px;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.u-body h1 {
+  font-size: 22px;
+}
+
+.u-body > p {
+  margin: -6px 0 4px;
+}
+
+.u-items {
+  display: grid;
+  gap: 8px;
+}
+
+.u-item {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(7, 6, 15, 0.5);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.u-item.on {
+  border-color: rgba(244, 63, 94, 0.55);
+  background: rgba(244, 63, 94, 0.07);
+}
+
+.u-item input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.u-item .check {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-strong);
+  display: grid;
+  place-items: center;
+}
+
+.u-item.on .check {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.u-item.on .check::after {
+  content: '';
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-1px) rotate(45deg);
+}
+
+.u-item input:focus-visible + .check {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+.u-item-text {
+  display: grid;
+  gap: 2px;
+}
+
+.u-size {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.u-confirm {
+  font-size: 13px;
+}
+
+.u-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.u-footer .grow {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.u-go {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.u-go:hover:not(:disabled) {
+  background: #e11d48;
+}
+
+.u-done {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 10px;
+  padding-top: 70px;
+}
+
+.u-planet {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #fff 0%, var(--accent-2) 18%, var(--accent) 55%, #2b0f66 100%);
+  box-shadow: 0 0 50px rgba(139, 92, 246, 0.6);
+  margin-bottom: 8px;
+  animation: drift 3s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  to {
+    transform: translateY(-8px);
+  }
+}

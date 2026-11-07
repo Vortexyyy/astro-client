@@ -1,0 +1,11 @@
+{
+  "category.astroclient": "Astro Client",
+  "key.category.astroclient.main": "Astro Client",
+  "key.astroclient.clickgui": "Open mod menu",
+  "key.astroclient.zoom": "Zoom (hold)",
+  "key.astroclient.freelook": "Freelook (hold)",
+  "astroclient.title.singleplayer": "Singleplayer",
+  "astroclient.title.multiplayer": "Multiplayer",
+  "astroclient.title.options": "Options",
+  "astroclient.title.quit": "Quit Game"
+}

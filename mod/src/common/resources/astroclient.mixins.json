@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.astroclient.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "CameraMixin",
+    "EntityMixin",
+    "GameOptionsMixin",
+    "GameRendererMixin",
+    "InGameHudMixin",
+    "MinecraftClientMixin",
+    "SimpleOptionAccessor",
+    "SplashOverlayMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

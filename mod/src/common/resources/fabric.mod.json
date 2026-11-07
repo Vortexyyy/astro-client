@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "astroclient",
+  "version": "${version}",
+  "name": "Astro Client",
+  "description": "Astro Client: branded menus, a Right Shift ClickGUI and quality-of-life modules.",
+  "authors": ["Astro Client Team"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.astroclient.AstroClient"]
+  },
+  "mixins": ["astroclient.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "${minecraft_dependency}",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

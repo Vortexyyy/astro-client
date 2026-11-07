@@ -1,0 +1,96 @@
+{
+  "name": "astro-launcher",
+  "productName": "Astro Launcher",
+  "version": "0.3.2",
+  "description": "Astro Client desktop launcher",
+  "main": "./out/main/index.js",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "npm run typecheck && electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "dist": "npm run build && electron-builder --win nsis"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource/orbitron": "^5.3.0",
+    "adm-zip": "^0.6.1",
+    "electron-updater": "^6.8.11",
+    "minecraft-launcher-core": "^3.18.2",
+    "msmc": "^5.0.5"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.6.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.5"
+  },
+  "author": "Astro Client",
+  "build": {
+    "appId": "dev.astroclient.launcher",
+    "productName": "Astro Launcher",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/astro-mod",
+        "to": "astro-mod",
+        "filter": [
+          "*.jar"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Astro Launcher",
+      "artifactName": "Astro-Setup-${version}.exe",
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Vortexyyy",
+        "repo": "astro-releases",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "overrides": {
+    "minecraft-launcher-core": {
+      "adm-zip": "$adm-zip",
+      "request": "npm:@cypress/request@^4.0.1",
+      "uuid": "^11.1.1"
+    }
+  }
+}
