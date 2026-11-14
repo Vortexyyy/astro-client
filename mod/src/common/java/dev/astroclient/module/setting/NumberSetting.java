@@ -31,6 +31,11 @@ public final class NumberSetting extends Setting<Double> {
         return (value - min) / (max - min);
     }
 
+    @Override
+    public boolean isDefault() {
+        return Math.abs(value - getDefault()) < 1e-9;
+    }
+
     public String format() {
         return step >= 1 ? String.valueOf(Math.round(value)) : String.format("%.2f", value);
     }

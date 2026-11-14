@@ -3,34 +3,34 @@ package dev.astroclient.gui.render;
 import net.minecraft.util.math.MathHelper;
 
 /**
- * Astro palette (ARGB) shared by the splash, menus and HUD: the "Orbit" look, graphite surfaces with
- * hairline borders and one accent. The accent pair changes with the preset chosen in Customize
+ * Astro palette (ARGB) shared by the splash, menus and HUD: the "Nebula" look, deep-space indigo
+ * surfaces with a violet primary and cyan highlight. The accent pair changes with the preset chosen in Customize
  * (see {@link #apply}); everything else is fixed.
  */
 public final class Theme {
-    public static final int SPACE_TOP = 0xFF0A0B10;
-    public static final int SPACE_BOTTOM = 0xFF05060A;
-    public static final int PANEL = 0xF00B0C12;
-    public static final int PANEL_HEADER = 0xFF12141C;
-    public static final int ROW_HOVER = 0x14FFFFFF;
-    public static final int HUD_BACKGROUND = 0xD60A0B10;
-    public static final int TEXT = 0xFFECEEF3;
-    public static final int MUTED = 0xFF8D93A5;
-    public static final int TRACK = 0xFF2B3040;
+    public static final int SPACE_TOP = 0xFF0B0A24;
+    public static final int SPACE_BOTTOM = 0xFF03040C;
+    public static final int PANEL = 0xEE10132A;
+    public static final int PANEL_HEADER = 0xFF171B3D;
+    public static final int ROW_HOVER = 0x22FFFFFF;
+    public static final int HUD_BACKGROUND = 0x9910132A;
+    public static final int TEXT = 0xFFE8EAFF;
+    public static final int MUTED = 0xFF8A8FB8;
+    public static final int TRACK = 0xFF262A4D;
     /** Deep surface behind full-screen panels (menus, customize, worlds, servers). */
-    public static final int PANEL_DEEP = 0xF50B0C12;
-    public static final int CARD = 0xFF12141C;
-    public static final int CARD_HOVER = 0xFF181B26;
-    /** Hairline borders around panels, cards, keys and pills. */
-    public static final int BORDER = 0xFF2B3040;
-    public static final int BORDER_STRONG = 0xFF3D4458;
+    public static final int PANEL_DEEP = 0xF20D0B22;
+    public static final int CARD = 0xFF17153A;
+    public static final int CARD_HOVER = 0xFF221D4F;
+    /** Soft violet hairlines (the launcher's --border / --border-strong). */
+    public static final int BORDER = 0x2EA096FF;
+    public static final int BORDER_STRONG = 0x52A096FF;
 
     // Status colours, shared so armour, potions and toggles agree
     public static final int GOOD = 0xFF34D399;
-    public static final int WARN = 0xFFFFB23D;
-    public static final int BAD = 0xFFFF6B3D;
+    public static final int WARN = 0xFFFACC15;
+    public static final int BAD = 0xFFF43F5E;
 
-    // Corner radii (GUI px) for the Rounded corner style; Sharp (the default) draws them square
+    // Corner radii (GUI px) for the Rounded corner style (the default); Sharp draws them square
     /** labels, tags, scrollbars */
     public static final float R_SM = 3f;
     /** HUD pills, keys, rows, inputs */
@@ -40,19 +40,19 @@ public final class Theme {
     /** full panels */
     public static final float R_XL = 10f;
 
-    /** Primary accent (Orbit: acid lime). */
-    public static int ACCENT = 0xFFD4FF3A;
-    /** Secondary accent, for highlights next to the primary one. */
-    public static int ACCENT_2 = 0xFFECFF9E;
+    /** Primary accent (Nebula: violet). */
+    public static int ACCENT = 0xFF8B5CF6;
+    /** Secondary accent (Nebula: cyan). */
+    public static int ACCENT_2 = 0xFF22D3EE;
     /** Text drawn on an ACCENT fill: dark on light accents, white on dark ones. */
-    public static int ON_ACCENT = 0xFF0A0B10;
+    public static int ON_ACCENT = 0xFFFFFFFF;
 
     public enum Preset {
+        NEBULA("Nebula", 0xFF8B5CF6, 0xFF22D3EE),
         ORBIT("Orbit", 0xFFD4FF3A, 0xFFECFF9E),
         SIGNAL("Signal", 0xFF3DE0FF, 0xFFB8F3FF),
         FLARE("Flare", 0xFFFF5CA8, 0xFFFFB8D9),
         AMBER("Amber", 0xFFFFB23D, 0xFFFFE0A3),
-        NEBULA("Nebula", 0xFF8B5CF6, 0xFF22D3EE),
         AURORA("Aurora", 0xFF10B981, 0xFF5EEAD4),
         SOLAR("Solar", 0xFFF97316, 0xFFFACC15),
         CRIMSON("Crimson", 0xFFF43F5E, 0xFFF0ABFC),

@@ -159,6 +159,9 @@ export interface ServerEntry {
 
 export type JavaMode = 'bundled' | 'custom';
 
+/** Launcher colour presets; each one only re-tints the violet/cyan palette. */
+export type LauncherTheme = 'nebula' | 'aurora' | 'amethyst';
+
 /** What the renderer is allowed to see. Secrets are reduced to booleans. */
 export interface PublicSettings {
   hasCurseforgeKey: boolean;
@@ -173,6 +176,10 @@ export interface PublicSettings {
   /** Development builds may launch offline without an account; packaged builds may not. */
   offlineAllowed: boolean;
   offlineName: string;
+  /** launcher accent preset */
+  theme: LauncherTheme;
+  /** turn off background animation, blur and other decorative effects */
+  reduceEffects: boolean;
 }
 
 export interface SettingsPatch {
@@ -183,6 +190,8 @@ export interface SettingsPatch {
   autoInstallAstro?: boolean;
   offlineName?: string;
   activeAccount?: string;
+  theme?: LauncherTheme;
+  reduceEffects?: boolean;
 }
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'launcher';

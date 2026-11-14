@@ -3,6 +3,7 @@ package dev.astroclient.gui.theme;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dev.astroclient.AstroClient;
+import dev.astroclient.gui.render.Animation;
 import dev.astroclient.gui.render.Theme;
 
 import java.io.IOException;
@@ -43,13 +44,29 @@ public final class ThemeSettings {
         }
     }
 
+    /** Speed of menu and HUD animations; Off makes everything instant (reduced motion). */
+    public enum Motion {
+        CALM("Calm", 0.6f),
+        NORMAL("Normal", 1f),
+        FAST("Fast", 1.7f),
+        OFF("Off", 0f);
+
+        public final String label;
+        public final float rate;
+
+        Motion(String label, float rate) {
+            this.label = label;
+            this.rate = rate;
+        }
+    }
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static ThemeSettings current = new ThemeSettings();
     private static Path file;
 
     // Saved fields (public for Gson)
     public boolean customMenus = true;
-    public Theme.Preset preset = Theme.Preset.ORBIT;
+    public Theme.Preset preset = Theme.Preset.NEBULA;
     public String menuBackground = STARFIELD;
     public String worldsBackground = SAME;
     public String serversBackground = SAME;
@@ -57,7 +74,7 @@ public final class ThemeSettings {
     public int backgroundDim = 35;
     /** 40..100 % opacity of menu panels */
     public int panelOpacity = 85;
-    public ButtonStyle buttonStyle = ButtonStyle.SHARP;
+    public ButtonStyle buttonStyle = ButtonStyle.ROUNDED;
     /** Bumped when a redesign changes defaults; older files are migrated once in sanitized(). */
     public int styleVersion;
     public boolean showPlayer = true;
@@ -65,6 +82,9 @@ public final class ThemeSettings {
     public Quality effects = Quality.HIGH;
     /** How often HUD text (FPS, coordinates, timers...) is rebuilt per second; 0 = every frame. */
     public int hudRefreshHz = 30;
+    /** 0..150 % strength of the soft accent glows (Rounded corners); 0 turns them off. */
+    public int glow = 100;
+    public Motion motion = Motion.NORMAL;
 
     public static ThemeSettings get() {
         return current;
@@ -80,12 +100,18 @@ public final class ThemeSettings {
         } catch (IOException | RuntimeException e) {
             AstroClient.LOGGER.warn("Could not read {}, using default theme", file, e);
         }
-        Theme.apply(current.preset);
+        current.apply();
+    }
+
+    /** Pushes the settings that live in static state (accent colours, animation speed). */
+    private void apply() {
+        Theme.apply(preset);
+        Animation.rate(motion.rate);
     }
 
     public static void save() {
-        current.styleVersion = 2;
-        Theme.apply(current.preset);
+        current.styleVersion = 3;
+        current.apply();
         if (file == null) return;
         try {
             Files.createDirectories(file.getParent());
@@ -96,18 +122,21 @@ public final class ThemeSettings {
     }
 
     private ThemeSettings sanitized() {
-        if (preset == null) preset = Theme.Preset.ORBIT;
-        if (buttonStyle == null) buttonStyle = ButtonStyle.SHARP;
-        if (styleVersion < 2) {
-            // 0.4 "Orbit" redesign: move everyone to the new look once; they can switch back in Customize
-            preset = Theme.Preset.ORBIT;
-            buttonStyle = ButtonStyle.SHARP;
-            styleVersion = 2;
+        if (preset == null) preset = Theme.Preset.NEBULA;
+        if (buttonStyle == null) buttonStyle = ButtonStyle.ROUNDED;
+        if (styleVersion < 3) {
+            // 0.4.1: back to the purple Nebula look for everyone once (0.4.0 had moved them to Orbit);
+            // Orbit stays available as a theme plus Sharp corners in Customize
+            preset = Theme.Preset.NEBULA;
+            buttonStyle = ButtonStyle.ROUNDED;
+            styleVersion = 3;
         }
         if (menuBackground == null) menuBackground = STARFIELD;
         if (worldsBackground == null) worldsBackground = SAME;
         if (serversBackground == null) serversBackground = SAME;
         if (effects == null) effects = Quality.HIGH;
+        if (motion == null) motion = Motion.NORMAL;
+        glow = Math.max(0, Math.min(150, glow));
         if (hudRefreshHz < 0 || hudRefreshHz > 240) hudRefreshHz = 30;
         backgroundDim = Math.max(0, Math.min(80, backgroundDim));
         panelOpacity = Math.max(40, Math.min(100, panelOpacity));

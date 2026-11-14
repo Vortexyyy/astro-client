@@ -101,6 +101,7 @@ public final class Backgrounds {
         Loaded image = ThemeSettings.STARFIELD.equals(background) ? null : load(background);
         if (image == null) {
             Starfield.background(context, width, height, 1f);
+            Starfield.haze(context, width, height, 1f);
             STARS.render(context, width, height, 1f);
             return;
         }

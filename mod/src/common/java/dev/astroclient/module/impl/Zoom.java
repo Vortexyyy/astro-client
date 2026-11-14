@@ -18,6 +18,11 @@ public final class Zoom extends Module {
         setEnabled(true);
     }
 
+    @Override
+    public String keyHint() {
+        return AstroClient.keyName(AstroClient.get().zoomKey());
+    }
+
     public double apply(double fov) {
         boolean held = isEnabled() && mc.currentScreen == null && AstroClient.get().zoomKey().isPressed();
         float target = held ? factor.get().floatValue() : 1f;

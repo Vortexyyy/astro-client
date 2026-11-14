@@ -48,12 +48,29 @@ public final class Starfield {
         context.fillGradient(0, 0, width, height, Theme.withAlpha(Theme.SPACE_TOP, alpha), Theme.withAlpha(Theme.SPACE_BOTTOM, alpha));
     }
 
+    /**
+     * Faint nebula haze across the sky in the theme's accent pair: three gradient quads, skipped when
+     * Effects quality is Off.
+     */
+    public static void haze(DrawContext context, int width, int height, float alpha) {
+        if (ThemeSettings.get().effects == ThemeSettings.Quality.OFF) return;
+        int violet = Theme.withAlpha(Theme.ACCENT, 0.085f * alpha);
+        int cyan = Theme.withAlpha(Theme.ACCENT_2, 0.05f * alpha);
+        int mid = Math.round(height * 0.5f);
+        context.fillGradient(0, Math.round(height * 0.12f), width, mid, violet & 0x00FFFFFF, violet);
+        context.fillGradient(0, mid, width, Math.round(height * 0.86f), violet, violet & 0x00FFFFFF);
+        context.fillGradient(0, Math.round(height * 0.62f), width, height, cyan & 0x00FFFFFF, cyan);
+    }
+
     public void render(DrawContext context, int width, int height, float alpha) {
         float seconds = (Util.getMeasuringTimeMs() % 1_000_000L) / 1000f;
         // effects quality: Low draws every second star without parallax, Off every fourth with no shooting stars
         ThemeSettings.Quality q = ThemeSettings.get().effects;
         int step = q == ThemeSettings.Quality.HIGH ? 1 : q == ThemeSettings.Quality.LOW ? 2 : 4;
         float parallax = q == ThemeSettings.Quality.HIGH ? PARALLAX : 0f;
+        // a few stars pick up the theme's accent pair
+        int cool = Theme.lerp(0xFFDDE4FF, Theme.ACCENT_2, 0.55f) & 0x00FFFFFF;
+        int warm = Theme.lerp(0xFFDDE4FF, Theme.ACCENT, 0.5f) & 0x00FFFFFF;
         for (int i = 0; i < x.length; i += step) {
             float d = depth[i];
             float sx = (x[i] - seconds * 0.004f * d) % 1f;
@@ -64,7 +81,7 @@ public final class Starfield {
             int a = Math.round(255 * alpha * d * twinkle);
             if (a <= 0) continue;
             int size = d > 0.85f ? 2 : 1;
-            context.fill(px, py, px + size, py + size, (a << 24) | 0xDDE4FF);
+            context.fill(px, py, px + size, py + size, (a << 24) | (i % 6 == 0 ? cool : i % 11 == 0 ? warm : 0xDDE4FF));
         }
         if (q != ThemeSettings.Quality.OFF) shootingStar(context, width, height, alpha, seconds);
     }

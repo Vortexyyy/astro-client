@@ -75,6 +75,11 @@ public final class AstroClient implements ClientModInitializer {
         return freelookKey;
     }
 
+    /** The key a binding is set to, as shown in Controls ("C", "Left Alt"), or null when unbound. */
+    public static String keyName(KeyBinding binding) {
+        return binding == null || binding.isUnbound() ? null : binding.getBoundKeyLocalizedText().getString();
+    }
+
     public void saveConfig() {
         if (Benchmark.active()) return; // benchmark toggles modules; keep the player's config as it was
         config.save(modules);

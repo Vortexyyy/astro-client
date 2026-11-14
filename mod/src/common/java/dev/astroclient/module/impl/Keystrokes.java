@@ -3,6 +3,7 @@ package dev.astroclient.module.impl;
 import dev.astroclient.gui.render.Animation;
 import dev.astroclient.gui.render.RenderUtil;
 import dev.astroclient.gui.render.Theme;
+import dev.astroclient.gui.theme.ThemeSettings;
 import dev.astroclient.module.HudModule;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.option.KeyBinding;
@@ -51,7 +52,18 @@ public final class Keystrokes extends HudModule {
         fade.setTarget(binding.isPressed() ? 1f : 0f);
         float p = fade.update();
         // Orbit: graphite key with a hairline border; held keys fill with the accent
-        RenderUtil.panel(context, x, y, w, h, Theme.R_MD, Theme.lerp(Theme.HUD_BACKGROUND, Theme.ACCENT, p), Theme.lerp(Theme.BORDER, Theme.ACCENT, p));
+        if (ThemeSettings.get().sharp()) {
+            RenderUtil.panel(context, x, y, w, h, Theme.R_MD, Theme.lerp(Theme.HUD_BACKGROUND, Theme.ACCENT, p), Theme.lerp(Theme.BORDER, Theme.ACCENT, p));
+        } else {
+            // Nebula: glass key; a held key fills violet, glows and gets a cyan wash rising from its base
+            boolean effects = ThemeSettings.get().effects != ThemeSettings.Quality.OFF;
+            if (p > 0.03f) RenderUtil.glow(context, x, y, w, h, Theme.R_MD, Theme.withAlpha(Theme.ACCENT_2, 0.5f * p), 4);
+            RenderUtil.roundedRect(context, x, y, w, h, Theme.R_MD, Theme.lerp(Theme.HUD_BACKGROUND, Theme.ACCENT, p));
+            if (effects && h >= 12) {
+                context.fillGradient(x + 3, y + 1, x + w - 3, y + h / 2, 0x18FFFFFF, 0x00FFFFFF);
+                if (p > 0.03f) context.fillGradient(x + 3, y + h / 2, x + w - 3, y + h - 2, Theme.ACCENT_2 & 0x00FFFFFF, Theme.withAlpha(Theme.ACCENT_2, 0.5f * p));
+            }
+        }
         if (label.isEmpty()) {
             RenderUtil.roundedRect(context, x + w / 2f - 8, y + h / 2f - 0.5f, 16, 1, 0.5f, Theme.lerp(Theme.MUTED, Theme.ON_ACCENT, p));
             return;

@@ -24,9 +24,16 @@ public final class RenderUtil {
         float r = Math.min(radius * scale, Math.min(pw, ph) / 2f);
         Gfx.push(context);
         Gfx.scale(context, 1f / scale, 1f / scale);
+        shape(context, px, py, pw, ph, r, color);
+        Gfx.pop(context);
+    }
+
+    /** Rounded or square fill in framebuffer pixels (the matrix already undoes the GUI scale). */
+    private static void shape(DrawContext context, int px, int py, int pw, int ph, float r, int color) {
+        if (pw <= 0 || ph <= 0 || (color >>> 24) == 0) return;
+        r = Math.min(r, Math.min(pw, ph) / 2f);
         if (r < 0.75f) solid(context, px, py, pw, ph, color);
         else if (!Gfx.roundedRect(context, px, py, pw, ph, Math.round(r), color)) rowCorners(context, px, py, pw, ph, r, color);
-        Gfx.pop(context);
     }
 
     /** 1.21.1 fallback: one quad per pixel row of each corner, with an anti-aliased edge pixel. */
@@ -78,6 +85,60 @@ public final class RenderUtil {
         outline(context, x, y, w, h, border);
     }
 
+    /**
+     * Nebula glass surface (Rounded corners): a hairline ring in the border colour, the fill inside it and
+     * a faint light edge along the top. Sharp corners fall back to {@link #panel}.
+     */
+    public static void surface(DrawContext context, float x, float y, float w, float h, float radius, int fill, int border) {
+        surface(context, x, y, w, h, radius, fill, border, 0.5f);
+    }
+
+    /** @param ring border thickness in GUI px (0.5 = hairline) */
+    public static void surface(DrawContext context, float x, float y, float w, float h, float radius, int fill, int border, float ring) {
+        if (ThemeSettings.get().sharp()) {
+            panel(context, x, y, w, h, radius, fill, border);
+            return;
+        }
+        if (w <= 0 || h <= 0) return;
+        float scale = Gfx.guiScale();
+        int px = Math.round(x * scale), py = Math.round(y * scale);
+        int pw = Math.round(w * scale), ph = Math.round(h * scale);
+        int t = Math.max(1, Math.round(ring * scale));
+        float r = Math.min(radius * scale, Math.min(pw, ph) / 2f);
+        Gfx.push(context);
+        Gfx.scale(context, 1f / scale, 1f / scale);
+        shape(context, px, py, pw, ph, r, border);
+        shape(context, px + t, py + t, pw - 2 * t, ph - 2 * t, Math.max(0f, r - t), fill);
+        // light catching the top edge, kept clear of the corners
+        int inset = Math.round(r) + t;
+        int light = ((fill >>> 24) * 0x1C / 255) << 24 | 0xFFFFFF;
+        if (pw - 2 * inset > 0 && (light >>> 24) > 2) solid(context, px + inset, py + t, pw - 2 * inset, hairline(scale), light);
+        Gfx.pop(context);
+    }
+
+    /**
+     * Rounded rect with a vertical gradient. Built from two flat end caps and one gradient quad, so the
+     * colours should be (nearly) opaque: translucent ones blend twice where the pieces overlap.
+     */
+    public static void gradientRect(DrawContext context, float x, float y, float w, float h, float radius, int top, int bottom) {
+        if (w <= 0 || h <= 0 || ((top >>> 24) == 0 && (bottom >>> 24) == 0)) return;
+        if (ThemeSettings.get().sharp()) radius = 0f;
+        float scale = Gfx.guiScale();
+        int px = Math.round(x * scale), py = Math.round(y * scale);
+        int pw = Math.round(w * scale), ph = Math.round(h * scale);
+        int r = Math.round(Math.min(radius * scale, Math.min(pw, ph) / 2f));
+        Gfx.push(context);
+        Gfx.scale(context, 1f / scale, 1f / scale);
+        if (r < 1) {
+            context.fillGradient(px, py, px + pw, py + ph, top, bottom);
+        } else {
+            shape(context, px, py, pw, 2 * r, r, top);
+            shape(context, px, py + ph - 2 * r, pw, 2 * r, r, bottom);
+            if (ph > 2 * r) context.fillGradient(px, py + r, px + pw, py + ph - r, top, bottom);
+        }
+        Gfx.pop(context);
+    }
+
     /** Hairline rectangle outline inside the given bounds. */
     public static void outline(DrawContext context, float x, float y, float w, float h, int color) {
         if (w <= 0 || h <= 0 || (color >>> 24) == 0) return;
@@ -101,17 +162,21 @@ public final class RenderUtil {
 
     /**
      * Emphasis around a shape. Rounded style: a soft glow (Effects quality Off draws nothing, Low halves
-     * the spread). Sharp style: a crisp outline just outside the shape, at the glow colour's strength.
+     * the spread; the "Accent glow" option scales its strength). Sharp style: a crisp outline just outside
+     * the shape, at the glow colour's strength.
      */
     public static void glow(DrawContext context, float x, float y, float w, float h, float radius, int color, int spread) {
-        ThemeSettings.Quality q = ThemeSettings.get().effects;
+        ThemeSettings settings = ThemeSettings.get();
+        ThemeSettings.Quality q = settings.effects;
         if (spread <= 0) return;
-        if (ThemeSettings.get().sharp()) {
+        if (settings.sharp()) {
             float strength = Math.min(1f, (color >>> 24) / 255f * 2f);
             outline(context, x - 1, y - 1, w + 2, h + 2, Theme.withAlpha(color | 0xFF000000, strength));
             return;
         }
-        if (q == ThemeSettings.Quality.OFF) return;
+        if (q == ThemeSettings.Quality.OFF || settings.glow <= 0) return;
+        if (settings.glow != 100) color = (Math.min(255, (color >>> 24) * settings.glow / 100) << 24) | (color & 0x00FFFFFF);
+        if ((color >>> 24) == 0) return;
         if (q == ThemeSettings.Quality.LOW) spread = Math.max(1, spread / 2);
         float scale = Gfx.guiScale();
         Gfx.push(context);
@@ -138,5 +203,37 @@ public final class RenderUtil {
             int sx2 = x1 + width * (i + 1) / slices;
             context.fill(sx1, y1, sx2, y2, Theme.lerp(left, right, (i + 0.5f) / slices));
         }
+    }
+
+    /**
+     * The Nebula accent line: violet to cyan, fading out at both ends, with a highlight that drifts along
+     * it every few seconds (Effects quality Off keeps it still). For menus, not the HUD.
+     */
+    public static void shimmerLine(DrawContext context, int x1, int y, int x2, int thickness, float alpha) {
+        int width = x2 - x1;
+        if (width <= 0 || alpha <= 0.01f) return;
+        ThemeSettings.Quality q = ThemeSettings.get().effects;
+        int slices = Math.max(1, Math.min(width, q == ThemeSettings.Quality.HIGH ? 48 : 16));
+        float head = q == ThemeSettings.Quality.OFF ? -1f : (Animation.clock() * 0.16f) % 1.8f - 0.4f;
+        for (int i = 0; i < slices; i++) {
+            float f = (i + 0.5f) / slices;
+            float edge = Math.min(1f, Math.min(f, 1f - f) * 5f);
+            float d = (f - head) / 0.14f;
+            float spark = head < -0.5f ? 0f : Math.max(0f, 1f - d * d);
+            int color = Theme.lerp(Theme.lerp(Theme.ACCENT, Theme.ACCENT_2, f), 0xFFFFFFFF, spark * 0.75f);
+            int sx1 = x1 + width * i / slices;
+            int sx2 = x1 + width * (i + 1) / slices;
+            context.fill(sx1, y, sx2, y + thickness, Theme.withAlpha(color, alpha * edge * (0.5f + 0.5f * spark)));
+        }
+    }
+
+    /**
+     * Vertical 1px line that fades out towards both ends (two gradient quads).
+     */
+    public static void fadeLineVertical(DrawContext context, int x, int y1, int y2, int color) {
+        int mid = (y1 + y2) / 2;
+        int clear = color & 0x00FFFFFF;
+        context.fillGradient(x, y1, x + 1, mid, clear, color);
+        context.fillGradient(x, mid, x + 1, y2, color, clear);
     }
 }

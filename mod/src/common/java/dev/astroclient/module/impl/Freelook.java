@@ -26,6 +26,11 @@ public final class Freelook extends Module {
     }
 
     @Override
+    public String keyHint() {
+        return AstroClient.keyName(AstroClient.get().freelookKey());
+    }
+
+    @Override
     public void onTick() {
         boolean held = mc.currentScreen == null && AstroClient.get().freelookKey().isPressed();
         if (held && !active) start();

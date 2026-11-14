@@ -13,8 +13,14 @@ public final class Ui {
     /** Glass panel with a soft accent glow, using the player's panel opacity. */
     public static void panel(DrawContext context, int x, int y, int w, int h) {
         float alpha = ThemeSettings.get().panelAlpha();
-        if (!ThemeSettings.get().sharp()) RenderUtil.glow(context, x, y, w, h, Theme.R_XL, Theme.withAlpha(Theme.ACCENT, 0.3f), 10);
-        RenderUtil.panel(context, x, y, w, h, Theme.R_XL, Theme.withAlpha(Theme.PANEL_DEEP, alpha), Theme.BORDER);
+        if (ThemeSettings.get().sharp()) {
+            RenderUtil.panel(context, x, y, w, h, Theme.R_XL, Theme.withAlpha(Theme.PANEL_DEEP, alpha), Theme.BORDER);
+            return;
+        }
+        RenderUtil.glow(context, x, y, w, h, Theme.R_XL, Theme.withAlpha(Theme.ACCENT, 0.3f), 10);
+        RenderUtil.surface(context, x, y, w, h, Theme.R_XL, Theme.withAlpha(Theme.PANEL_DEEP, alpha), Theme.BORDER_STRONG);
+        // the Nebula signature: a violet-to-cyan line of light along the top edge
+        RenderUtil.shimmerLine(context, x + 10, y + 1, x + w - 10, 1, 0.9f);
     }
 
     /** Thin accent gradient divider. */
@@ -24,7 +30,7 @@ public final class Ui {
             context.fill(x1, y, x1 + 12, y + 1, Theme.ACCENT);
             return;
         }
-        RenderUtil.horizontalGradient(context, x1, y, x2, y + 1, Theme.withAlpha(Theme.ACCENT, 0.5f), Theme.withAlpha(Theme.ACCENT_2, 0.1f));
+        RenderUtil.horizontalGradient(context, x1, y, x2, y + 1, Theme.withAlpha(Theme.ACCENT, 0.55f), Theme.withAlpha(Theme.ACCENT_2, 0.12f));
     }
 
     /** Placeholder tile with an initial, for worlds/servers without an icon. */

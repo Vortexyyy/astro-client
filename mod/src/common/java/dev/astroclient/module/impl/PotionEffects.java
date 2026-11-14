@@ -81,7 +81,7 @@ public final class PotionEffects extends HudModule {
             for (Line l : lines) ending |= l.ending;
             // Orbit: an effect about to run out turns the frame orange
             RenderUtil.panel(context, x, y, w, h, Theme.R_MD, Theme.HUD_BACKGROUND, ending ? Theme.BAD : Theme.BORDER);
-            if (!dev.astroclient.gui.theme.ThemeSettings.get().sharp()) RenderUtil.roundedRect(context, x, y + 3, 2, h - 6, 1, Theme.ACCENT);
+            if (!dev.astroclient.gui.theme.ThemeSettings.get().sharp()) context.fillGradient(x + 1, y + 3, x + 3, y + h - 3, Theme.ACCENT, Theme.ACCENT_2);
         }
         for (int i = 0; i < lines.size(); i++) {
             Line l = lines.get(i);

@@ -11,6 +11,11 @@ import Home from './pages/Home';
 import Profiles from './pages/Profiles';
 import Settings from './pages/Settings';
 import Icon from './components/Icon';
+import ShortcutsDialog from './components/ShortcutsDialog';
+
+const PAGE_KEYS: Page[] = ['home', 'mods', 'profiles', 'console', 'settings'];
+/** Elements that get the pointer-following spotlight. */
+const SPOTLIT = '.card, .server-card, .mod-card, .profile-item, .bundle';
 
 const MAX_CONSOLE_LINES = 5000;
 
@@ -38,6 +43,7 @@ export interface AppState {
   clearConsole(): Promise<void>;
   openImport(): void;
   confirm(request: ConfirmRequest): Promise<boolean>;
+  showShortcuts(): void;
 }
 
 const idleGame: GameState = { running: false, profileId: null, profileName: null, startedAt: null };
@@ -52,6 +58,7 @@ export default function App() {
   const [launch, setLaunch] = useState<LaunchProgress>(idleLaunch);
   const [consoleLines, setConsoleLines] = useState<ConsoleLine[]>([]);
   const [importOpen, setImportOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; kind: 'info' | 'error' } | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<{
     request: ConfirmRequest;
@@ -144,6 +151,92 @@ export default function App() {
     [selectedId, notify, refresh]
   );
 
+  // Accent preset and "reduce effects" are plain attributes on <html>; the CSS swaps tokens.
+  const theme = settings?.theme ?? 'nebula';
+  const reduceEffects = settings?.reduceEffects ?? false;
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+  useEffect(() => {
+    document.documentElement.dataset.effects = reduceEffects ? 'reduced' : 'full';
+  }, [reduceEffects]);
+
+  // Pause every CSS animation while the window is unfocused or hidden, so the launcher costs
+  // nothing while it sits next to a running game (the starfield canvas pauses itself the same way).
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => {
+      const idle = document.visibilityState !== 'visible' || !document.hasFocus();
+      if (idle) root.dataset.idle = '';
+      else delete root.dataset.idle;
+    };
+    update();
+    window.addEventListener('focus', update);
+    window.addEventListener('blur', update);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      window.removeEventListener('focus', update);
+      window.removeEventListener('blur', update);
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, []);
+
+  // Pointer-following spotlight on glass cards: one delegated listener, at most one style write per frame.
+  useEffect(() => {
+    let frame = 0;
+    let target: HTMLElement | null = null;
+    let x = 0;
+    let y = 0;
+    const onMove = (e: PointerEvent) => {
+      if (document.documentElement.dataset.effects === 'reduced') return;
+      target = (e.target as Element | null)?.closest?.<HTMLElement>(SPOTLIT) ?? null;
+      x = e.clientX;
+      y = e.clientY;
+      if (!frame && target)
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          if (!target) return;
+          const r = target.getBoundingClientRect();
+          target.style.setProperty('--mx', `${x - r.left}px`);
+          target.style.setProperty('--my', `${y - r.top}px`);
+        });
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const account = settings?.accounts.find((a) => a.uuid === settings.activeAccount) ?? null;
+  const canPlay =
+    Boolean(selectedId) && Boolean(settings) && (Boolean(account) || Boolean(settings?.offlineAllowed)) && !launch.launching && !game.running;
+  const modalOpen = importOpen || pendingConfirm !== null || shortcutsOpen;
+
+  // Keyboard shortcuts (listed in ShortcutsDialog)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (modalOpen || e.repeat) return;
+      const el = e.target as HTMLElement | null;
+      const typing = el?.matches?.('input, textarea, select, [contenteditable="true"]') ?? false;
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && !e.altKey && !e.shiftKey && /^[1-5]$/.test(e.key)) {
+        e.preventDefault();
+        setPage(PAGE_KEYS[Number(e.key) - 1]);
+      } else if (ctrl && e.key === 'Enter') {
+        e.preventDefault();
+        if (canPlay) void play();
+      } else if ((e.key === '?' && !typing && !ctrl) || (ctrl && e.key === '/')) {
+        e.preventDefault();
+        setShortcutsOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modalOpen, canPlay, play]);
+
+  const closeShortcuts = useCallback(() => setShortcutsOpen(false), []);
+
   const state: AppState = {
     profiles,
     selectedId,
@@ -163,12 +256,13 @@ export default function App() {
       setConsoleLines([]);
     },
     openImport: () => setImportOpen(true),
-    confirm
+    confirm,
+    showShortcuts: () => setShortcutsOpen(true)
   };
 
   return (
     <div className="app">
-      <Starfield />
+      <Starfield still={reduceEffects} theme={theme} />
       <TitleBar app={state} page={page} />
       <main className={`content page-${page}`} key={page}>
         {page === 'home' && <Home app={state} />}
@@ -178,6 +272,7 @@ export default function App() {
         {page === 'settings' && <Settings app={state} />}
       </main>
       {importOpen && <ImportWizard app={state} onClose={() => setImportOpen(false)} />}
+      {shortcutsOpen && <ShortcutsDialog onClose={closeShortcuts} />}
       {pendingConfirm && <ConfirmDialog request={pendingConfirm.request} onAnswer={answerConfirm} />}
       {toast && (
         <div className={`toast toast-${toast.kind}`} role={toast.kind === 'error' ? 'alert' : 'status'}>

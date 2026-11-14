@@ -1,7 +1,7 @@
 {
   "name": "astro-launcher",
   "productName": "Astro Launcher",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Astro Client desktop launcher",
   "main": "./out/main/index.js",
   "private": true,

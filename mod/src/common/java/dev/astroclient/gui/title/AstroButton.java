@@ -63,16 +63,23 @@ public class AstroButton extends AstroButtonBase {
             renderOrbit(context, x, y, h, panel);
             return;
         }
-        if (h > 0.01f) RenderUtil.glow(context, x, y, width, height, radius, Theme.withAlpha(Theme.ACCENT, 0.55f * h * alpha), 6);
-        RenderUtil.roundedRect(context, x, y, width, height, radius,
-                Theme.withAlpha(Theme.lerp(Theme.PANEL, HOVER_BG, h), alpha * Math.max(panel, h)));
+        // glass surface: the screen's main action carries a violet tint; hover and keyboard focus light the ring
+        boolean main = primary && active;
+        if (h > 0.01f) RenderUtil.glow(context, x, y, width, height, radius, Theme.withAlpha(Theme.ACCENT, 0.55f * h * alpha), 7);
+        int fill = Theme.lerp(main ? Theme.lerp(Theme.PANEL, Theme.ACCENT, 0.24f) : Theme.PANEL, HOVER_BG, h);
+        int ring = Theme.lerp(main ? Theme.withAlpha(Theme.ACCENT, 0.7f) : Theme.BORDER_STRONG,
+                isFocused() ? Theme.ACCENT_2 : Theme.lerp(Theme.ACCENT, 0xFFFFFFFF, 0.3f), h);
+        RenderUtil.surface(context, x, y, width, height, radius, Theme.withAlpha(fill, alpha * Math.max(panel, h)), Theme.withAlpha(ring, alpha));
 
         if (leftAligned) {
-            float barH = (height - 10) * Math.max(0.35f, h);
-            RenderUtil.roundedRect(context, x + 6, y + height / 2f - barH / 2f, 2, barH, 1, Theme.withAlpha(Theme.ACCENT_2, alpha));
-            // chevron slides in from the left on hover
-            if (h > 0.02f) {
-                Icons.draw(context, Icons.RIGHT, x + width - 12 - Math.round(5 * (1f - h)), y + (height - 5) / 2, Theme.withAlpha(Theme.ACCENT_2, alpha * h));
+            float barH = (height - 10) * Math.max(main ? 0.6f : 0.35f, h);
+            if (h > 0.02f) RenderUtil.glow(context, x + 6, y + height / 2f - barH / 2f, 2, barH, 1, Theme.withAlpha(Theme.ACCENT_2, 0.6f * h * alpha), 3);
+            RenderUtil.gradientRect(context, x + 6, y + height / 2f - barH / 2f, 2, barH, 1, Theme.withAlpha(Theme.ACCENT_2, alpha),
+                    Theme.withAlpha(Theme.lerp(Theme.ACCENT_2, Theme.ACCENT, 0.4f + 0.6f * h), alpha));
+            // chevron slides in from the left on hover (the main action always shows a faint one)
+            float chevron = Math.max(h, main ? 0.4f : 0f);
+            if (chevron > 0.02f) {
+                Icons.draw(context, Icons.RIGHT, x + width - 12 - Math.round(5 * (1f - h)), y + (height - 5) / 2, Theme.withAlpha(Theme.ACCENT_2, alpha * chevron));
             }
         } else {
             // neon underline grows from the centre on hover

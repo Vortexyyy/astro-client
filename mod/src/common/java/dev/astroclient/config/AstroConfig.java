@@ -33,6 +33,7 @@ public final class AstroConfig {
                 if (el == null || !el.isJsonObject()) continue;
                 JsonObject obj = el.getAsJsonObject();
                 if (obj.has("enabled")) module.setEnabled(obj.get("enabled").getAsBoolean());
+                if (obj.has("pinned")) module.setPinned(obj.get("pinned").getAsBoolean());
                 JsonObject hud = obj.getAsJsonObject("hud");
                 if (module instanceof HudModule h && hud != null && hud.has("x") && hud.has("y")) {
                     h.setPosition(hud.get("x").getAsFloat(), hud.get("y").getAsFloat());
@@ -54,6 +55,7 @@ public final class AstroConfig {
         for (Module module : modules.all()) {
             JsonObject obj = new JsonObject();
             obj.addProperty("enabled", module.isEnabled());
+            if (module.isPinned()) obj.addProperty("pinned", true);
             JsonObject settings = new JsonObject();
             for (Setting<?> setting : module.getSettings()) settings.add(setting.getName(), setting.toJson());
             obj.add("settings", settings);

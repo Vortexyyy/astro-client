@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { AppState } from '../App';
 import { astro, errorText } from '../api';
 import SkinHead from './SkinHead';
@@ -15,6 +15,21 @@ const NAV: Array<{ id: Page; label: string; icon: IconName }> = [
 ];
 
 export default function TitleBar({ app, page }: { app: AppState; page: Page }) {
+  const navRef = useRef<HTMLElement>(null);
+  const [indicator, setIndicator] = useState<{ x: number; w: number } | null>(null);
+
+  // The active-tab glow slides between tabs; measured from the DOM so it follows the real widths.
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = navRef.current?.querySelector<HTMLElement>('.tab.active');
+      if (el) setIndicator({ x: el.offsetLeft, w: el.offsetWidth });
+    };
+    measure();
+    void document.fonts?.ready.then(measure);
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [page]);
+
   return (
     <header className="titlebar">
       <div className="brand">
@@ -24,13 +39,21 @@ export default function TitleBar({ app, page }: { app: AppState; page: Page }) {
         <span className="brand-name">ASTRO</span>
       </div>
 
-      <nav className="tabs" aria-label="Main">
-        {NAV.map((n) => (
+      <nav className="tabs" aria-label="Main" ref={navRef}>
+        {indicator && (
+          <span
+            className="tab-indicator"
+            aria-hidden="true"
+            style={{ transform: `translateX(${indicator.x}px)`, width: indicator.w }}
+          />
+        )}
+        {NAV.map((n, i) => (
           <button
             key={n.id}
             className={`tab ${page === n.id ? 'active' : ''}`}
             onClick={() => app.navigate(n.id)}
             aria-current={page === n.id ? 'page' : undefined}
+            title={`${n.label} (Ctrl+${i + 1})`}
           >
             <Icon name={n.icon} size={15} />
             {n.label}
@@ -40,6 +63,9 @@ export default function TitleBar({ app, page }: { app: AppState; page: Page }) {
       </nav>
 
       <div className="titlebar-right">
+        <button className="icon-button titlebar-shortcuts" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onClick={app.showShortcuts}>
+          <Icon name="keyboard" size={17} />
+        </button>
         <AccountMenu app={app} />
         <div className="window-controls">
           <button aria-label="Minimize" onClick={() => astro.windowControl('minimize')}>

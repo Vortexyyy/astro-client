@@ -27,9 +27,13 @@ public final class Benchmark {
     private static final long RECORD_NS = 30_000_000_000L;
     private static final int MAX_FRAMES = 2_000_000;
 
-    private enum State { WAIT_TITLE, LOADING, WARMUP, RECORD, MENU_SHOT, DONE }
-    /** ASTRO_SHOTS=1 also screenshots the title screen and the Right Shift menu, for visual checks. */
+    private enum State { WAIT_TITLE, LOADING, WARMUP, RECORD, MENU_SHOT, SETTINGS_SHOT, CUSTOMIZE_SHOT, DONE }
+    /**
+     * ASTRO_SHOTS=1 also screenshots the title screen and the Right Shift menu, for visual checks;
+     * ASTRO_SHOTS=all adds a module settings page and the Customize screen.
+     */
     private static final boolean SHOTS = System.getenv("ASTRO_SHOTS") != null;
+    private static final boolean MORE_SHOTS = "all".equals(System.getenv("ASTRO_SHOTS"));
     private static int titleTicks;
 
     private static State state = State.WAIT_TITLE;
@@ -114,6 +118,25 @@ public final class Benchmark {
                 }
             }
             case MENU_SHOT -> {
+                if (now - stateStart > 1_500_000_000L) {
+                    shot(client);
+                    if (MORE_SHOTS) {
+                        client.setScreen(new dev.astroclient.gui.menu.ModMenuScreen().showSettings("Crosshair"));
+                        enter(State.SETTINGS_SHOT, now);
+                        return;
+                    }
+                    enter(State.DONE, now);
+                    client.scheduleStop();
+                }
+            }
+            case SETTINGS_SHOT -> {
+                if (now - stateStart > 1_500_000_000L) {
+                    shot(client);
+                    client.setScreen(new dev.astroclient.gui.custom.CustomizeScreen(null));
+                    enter(State.CUSTOMIZE_SHOT, now);
+                }
+            }
+            case CUSTOMIZE_SHOT -> {
                 if (now - stateStart > 1_500_000_000L) {
                     shot(client);
                     enter(State.DONE, now);

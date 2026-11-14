@@ -19,7 +19,6 @@ import net.minecraft.client.gui.screen.multiplayer.MultiplayerWarningScreen;
 import net.minecraft.client.gui.screen.option.OptionsScreen;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.ArrayList;
@@ -132,7 +131,8 @@ public class AstroTitleScreen extends AstroScreen {
             int cx = model.getX() + modelW / 2;
             int plateY = model.getY() + modelH + 6;
             int plateW = Math.max(90, textRenderer.getWidth(name) + 24);
-            RenderUtil.panel(context, cx - plateW / 2f, plateY, plateW, PLATE_H, Theme.R_LG, Theme.withAlpha(Theme.PANEL, 0.85f * t), Theme.withAlpha(Theme.BORDER, t));
+            RenderUtil.surface(context, cx - plateW / 2f, plateY, plateW, PLATE_H, Theme.R_LG, Theme.withAlpha(Theme.PANEL, 0.85f * t),
+                    Theme.withAlpha(ThemeSettings.get().sharp() ? Theme.BORDER : Theme.BORDER_STRONG, t));
             context.drawCenteredTextWithShadow(textRenderer, name, cx, plateY + 6, Theme.withAlpha(Theme.TEXT, t));
             context.drawCenteredTextWithShadow(textRenderer, "Drag to rotate", cx, plateY + 18, Theme.withAlpha(Theme.MUTED, t));
         }
@@ -150,6 +150,10 @@ public class AstroTitleScreen extends AstroScreen {
 
         float t = Animation.easeOutCubic(intro.get());
         int x = Math.max(24, width / 10);
+        boolean nebula = !ThemeSettings.get().sharp();
+        if (model != null && nebula && ThemeSettings.STARFIELD.equals(ThemeSettings.get().menuBackground)) {
+            aurora(context, model.getX() + modelW / 2, model.getY() + modelH - 6, t);
+        }
         RenderUtil.horizontalGradient(context, 0, 0, x + BUTTON_W + 90, height, Theme.withAlpha(0xFF05040F, SCRIM * t), 0x0005040F);
         int scale = logoScale;
         int logoY = this.logoY - Math.round((1f - t) * 10f);
@@ -162,13 +166,24 @@ public class AstroTitleScreen extends AstroScreen {
             RenderUtil.roundedRect(context, x + 1, ruleY + PixelFont.height(subScale) / 2f - 0.5f, 12, 1.5f, 0, Theme.withAlpha(Theme.ACCENT, t));
             PixelFont.draw(context, "CLIENT", x + 18, ruleY, subScale, subScale * 3, Theme.withAlpha(Theme.MUTED, t), Theme.withAlpha(Theme.MUTED, t));
         } else {
-            float pulse = 0.5f + 0.5f * MathHelper.sin((Util.getMeasuringTimeMs() % 100_000L) / 600f);
+            float clock = Animation.clock();
+            float pulse = 0.5f + 0.5f * MathHelper.sin(clock * 1.7f);
             int logoW = PixelFont.width("ASTRO", scale, scale * 2);
             RenderUtil.glow(context, x, logoY, logoW, PixelFont.height(scale), 8,
-                    Theme.withAlpha(Theme.ACCENT, (0.25f + 0.15f * pulse) * t), 18);
-            PixelFont.draw(context, "ASTRO", x, logoY, scale, scale * 2, Theme.withAlpha(0xFFFFFFFF, t), Theme.withAlpha(Theme.ACCENT, t));
-            PixelFont.draw(context, "CLIENT", x + 2, logoY + PixelFont.height(scale) + 6, subScale, subScale * 4,
-                    Theme.withAlpha(Theme.ACCENT_2, t), Theme.withAlpha(Theme.ACCENT_2, t));
+                    Theme.withAlpha(Theme.ACCENT, (0.3f + 0.16f * pulse) * t), 20);
+            // extruded wordmark: a deep violet copy below-right gives it depth, then a band of light sweeps across
+            int depth = Math.max(1, scale / 2);
+            PixelFont.draw(context, "ASTRO", x + depth, logoY + depth, scale, scale * 2,
+                    Theme.withAlpha(Theme.lerp(Theme.ACCENT, Theme.SPACE_BOTTOM, 0.6f), t), Theme.withAlpha(Theme.lerp(Theme.ACCENT_2, Theme.SPACE_BOTTOM, 0.68f), t));
+            float sheen = (clock * 0.42f) % 4.5f - 0.3f;
+            PixelFont.draw(context, "ASTRO", x, logoY, scale, scale * 2, Theme.withAlpha(0xFFFFFFFF, t),
+                    Theme.withAlpha(Theme.lerp(Theme.ACCENT, 0xFFFFFFFF, 0.12f), t), sheen);
+            int capY = logoY + PixelFont.height(scale) + depth + 6;
+            PixelFont.draw(context, "CLIENT", x + 2, capY, subScale, subScale * 4,
+                    Theme.withAlpha(Theme.ACCENT_2, t), Theme.withAlpha(Theme.lerp(Theme.ACCENT_2, Theme.ACCENT, 0.55f), t));
+            // the caption runs out into the Nebula accent line
+            int capW = PixelFont.width("CLIENT", subScale, subScale * 4);
+            RenderUtil.shimmerLine(context, x + 2 + capW + 8, capY + PixelFont.height(subScale) / 2, x + Math.max(logoW + depth, BUTTON_W), 1, t);
         }
 
         if (model != null) {
@@ -180,9 +195,85 @@ public class AstroTitleScreen extends AstroScreen {
                 RenderUtil.roundedRect(context, cx - 60, footY + 2, 120, 1, 0, Theme.withAlpha(Theme.BORDER_STRONG, t));
                 RenderUtil.roundedRect(context, cx - 3, footY, 6, 5, 0, Theme.withAlpha(Theme.ACCENT, t));
             } else {
-                RenderUtil.glow(context, cx - 45, footY - 4, 90, 8, 4, Theme.withAlpha(Theme.ACCENT_2, 0.5f * t), 10);
-                RenderUtil.roundedRect(context, cx - 45, footY - 4, 90, 8, 4, Theme.withAlpha(Theme.ACCENT, 0.6f * t));
+                platform(context, cx, footY, t);
             }
+        }
+    }
+
+    /**
+     * Aurora behind the player: narrow columns of vertical gradients (violet at the horizon, cyan above)
+     * whose height and brightness drift slowly. Effects quality Low halves the columns, Off skips it.
+     */
+    private void aurora(DrawContext context, int cx, int baseY, float t) {
+        ThemeSettings.Quality q = ThemeSettings.get().effects;
+        if (q == ThemeSettings.Quality.OFF) return;
+        int col = q == ThemeSettings.Quality.HIGH ? 5 : 10;
+        int half = Math.round(modelW * 1.3f);
+        int reach = Math.min(modelH + 30, baseY - 4);
+        float clock = Animation.clock();
+        int upper = Theme.lerp(Theme.ACCENT, Theme.ACCENT_2, 0.8f);
+        for (int x0 = cx - half; x0 < cx + half; x0 += col) {
+            float u = (x0 + col / 2f - cx) / half;
+            float env = 1f - u * u;
+            env *= env;
+            float wave = 0.62f + 0.22f * MathHelper.sin(u * 3.1f + clock * 0.33f) + 0.16f * MathHelper.sin(u * 7.7f - clock * 0.21f + 1.7f);
+            float a = 0.52f * env * (0.72f + 0.28f * MathHelper.sin(u * 5.3f + clock * 0.47f + 0.6f)) * t;
+            if (a < 0.012f) continue;
+            int h = Math.round(reach * wave * (0.4f + 0.6f * env));
+            int peak = baseY - 8;
+            int mid = peak - Math.round(h * 0.4f);
+            int violet = Theme.withAlpha(Theme.ACCENT, a);
+            int cyan = Theme.withAlpha(upper, a * 0.6f);
+            context.fillGradient(x0, peak - h, x0 + col, mid, cyan & 0x00FFFFFF, cyan);
+            context.fillGradient(x0, mid, x0 + col, peak, cyan, violet);
+            context.fillGradient(x0, peak, x0 + col, baseY + 8, violet, violet & 0x00FFFFFF);
+        }
+    }
+
+    /** Glowing platform under the player with a soft light beam and two dotted orbits, one carrying a comet. */
+    private void platform(DrawContext context, int cx, int footY, float t) {
+        ThemeSettings.Quality q = ThemeSettings.get().effects;
+        float clock = Animation.clock();
+        if (q != ThemeSettings.Quality.OFF) {
+            // light rising from the disc: nested gradient quads so the sides fall off softly
+            int beam = Theme.withAlpha(Theme.lerp(Theme.ACCENT, Theme.ACCENT_2, 0.35f), 0.075f * t);
+            for (int i = 0; i < 4; i++) {
+                int half = 46 - i * 10;
+                context.fillGradient(cx - half, footY - 92 + i * 12, cx + half, footY, beam & 0x00FFFFFF, beam);
+            }
+            orbit(context, cx, footY + 1, 98, 17, -clock * 0.22f + 2f, false, 0.55f * t);
+            orbit(context, cx, footY + 1, 72, 12, clock * 0.55f, true, t);
+        }
+        float pulse = 0.5f + 0.5f * MathHelper.sin(clock * 1.3f);
+        RenderUtil.glow(context, cx - 46, footY - 4, 92, 9, 4.5f, Theme.withAlpha(Theme.ACCENT_2, (0.5f + 0.2f * pulse) * t), 12);
+        RenderUtil.gradientRect(context, cx - 46, footY - 4, 92, 9, 4.5f, Theme.withAlpha(Theme.lerp(Theme.ACCENT, 0xFFFFFFFF, 0.3f), t),
+                Theme.withAlpha(Theme.lerp(Theme.ACCENT, Theme.SPACE_BOTTOM, 0.45f), t));
+        RenderUtil.roundedRect(context, cx - 36, footY - 3, 72, 1, 0.5f, Theme.withAlpha(Theme.lerp(Theme.ACCENT_2, 0xFFFFFFFF, 0.4f), 0.9f * t));
+    }
+
+    /** A dotted ellipse; the near side is brighter, and the comet (if any) lights the dots it has just passed. */
+    private void orbit(DrawContext context, int cx, int cy, int rx, int ry, float angle, boolean comet, float alpha) {
+        int dots = ThemeSettings.get().effects == ThemeSettings.Quality.HIGH ? 84 : 42;
+        float head = MathHelper.floorMod(angle, MathHelper.TAU);
+        int rgb = Theme.lerp(Theme.ACCENT, Theme.ACCENT_2, comet ? 0.7f : 0.2f) & 0x00FFFFFF;
+        for (int i = 0; i < dots; i++) {
+            float a = MathHelper.TAU * i / dots;
+            float sin = MathHelper.sin(a);
+            float strength = 0.16f + 0.26f * (0.5f + 0.5f * sin);
+            if (comet) {
+                float behind = MathHelper.floorMod(head - a, MathHelper.TAU);
+                if (behind < 1.5f) strength += (1f - behind / 1.5f) * (1f - behind / 1.5f) * 0.75f;
+            }
+            int al = Math.round(255 * Math.min(1f, strength) * alpha);
+            if (al < 6) continue;
+            int px = cx + Math.round(MathHelper.cos(a) * rx);
+            int py = cy + Math.round(sin * ry);
+            context.fill(px, py, px + 1, py + 1, (al << 24) | rgb);
+        }
+        if (comet) {
+            float hx = cx + MathHelper.cos(head) * rx, hy = cy + MathHelper.sin(head) * ry;
+            RenderUtil.glow(context, hx - 1.5f, hy - 1.5f, 3, 3, 1.5f, Theme.withAlpha(Theme.ACCENT_2, 0.8f * alpha), 4);
+            RenderUtil.circle(context, hx, hy, 1.5f, Theme.withAlpha(0xFFFFFFFF, alpha));
         }
     }
 

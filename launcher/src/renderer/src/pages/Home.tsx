@@ -17,6 +17,16 @@ function useElapsed(since: number | null): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
+function timeAgo(when: number): string {
+  const minutes = Math.round((Date.now() - when) / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? 'yesterday' : `${days} days ago`;
+}
+
 export default function Home({ app }: { app: AppState }) {
   const s = app.settings;
   const profile = app.profiles.find((p) => p.id === app.selectedId) ?? null;
@@ -26,30 +36,57 @@ export default function Home({ app }: { app: AppState }) {
   const needsAccount = !account && !s?.offlineAllowed;
 
   const label = app.game.running ? 'Playing' : app.launch.launching ? 'Launching' : 'Launch Game';
+  const loaderName = profile ? (profile.loader === 'vanilla' ? 'Vanilla' : profile.loader === 'quilt' ? 'Quilt' : 'Fabric') : null;
 
   return (
     <section className="home">
-      <div className="planet" aria-hidden="true">
-        <div className="planet-ring" />
+      <div className="home-sky" aria-hidden="true">
+        <div className="sky-glow" />
+        <div className="planet">
+          <div className="planet-shade" />
+        </div>
+        <div className="planet-orbit">
+          <div className="planet-orbit-spin" />
+        </div>
+        <div className="horizon" />
       </div>
 
       <div className="hero">
-        <p className="eyebrow">Astro Client · {profile ? `${profile.loader === 'vanilla' ? 'Vanilla' : profile.loader === 'quilt' ? 'Quilt' : 'Fabric'} ${profile.mcVersion}` : 'Minecraft'}</p>
+        <p className="eyebrow">
+          <span className="eyebrow-line" aria-hidden="true" />
+          Astro Client · {profile ? `${loaderName} ${profile.mcVersion}` : 'Minecraft'}
+          <span className="eyebrow-line" aria-hidden="true" />
+        </p>
         <h1 className="wordmark">ASTRO</h1>
 
         {needsAccount ? (
           <button className="btn-launch microsoft" onClick={() => app.navigate('settings')}>
-            <MicrosoftLogo /> Sign in to play
+            <span className="launch-label">
+              <MicrosoftLogo /> Sign in to play
+            </span>
           </button>
         ) : profile ? (
-          <button className={`btn-launch ${busy ? 'busy' : ''}`} onClick={() => app.play()} disabled={busy}>
-            {label}
-            {app.game.running && <small>{elapsed}</small>}
+          <button
+            className={`btn-launch ${busy ? 'busy' : ''}`}
+            onClick={() => app.play()}
+            disabled={busy}
+            title={busy ? undefined : 'Launch (Ctrl+Enter)'}
+          >
+            <span className="launch-shine" aria-hidden="true" />
+            <span className="launch-label">
+              {!busy && <Icon name="play" size={18} className="launch-icon" />}
+              {label}
+              {app.game.running && <small>{elapsed}</small>}
+            </span>
           </button>
         ) : (
           <div className="empty-actions">
             <button className="btn-launch" onClick={() => app.navigate('profiles')}>
-              Create a profile
+              <span className="launch-shine" aria-hidden="true" />
+              <span className="launch-label">
+                <Icon name="plus" size={18} className="launch-icon" />
+                Create a profile
+              </span>
             </button>
             <button className="link" onClick={app.openImport}>
               or import from Lunar, Modrinth, Prism, CurseForge…
@@ -68,6 +105,27 @@ export default function Home({ app }: { app: AppState }) {
               ))}
             </select>
           </label>
+        )}
+
+        {profile && (
+          <ul className="hero-stats" aria-label="Profile details">
+            <li>
+              <Icon name="layers" size={14} />
+              {loaderName} {profile.mcVersion}
+            </li>
+            <li>
+              <Icon name="package" size={14} />
+              {profile.mods.length} {profile.mods.length === 1 ? 'mod' : 'mods'}
+            </li>
+            <li>
+              <Icon name="cpu" size={14} />
+              {Math.round((profile.memoryMb / 1024) * 10) / 10} GB
+            </li>
+            <li>
+              <Icon name="clock" size={14} />
+              {profile.lastPlayed ? `Played ${timeAgo(profile.lastPlayed)}` : 'Never played'}
+            </li>
+          </ul>
         )}
 
         <div className="launch-status" aria-live="polite">

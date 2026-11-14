@@ -15,6 +15,7 @@ public abstract class Module {
     private final Category category;
     private final List<Setting<?>> settings = new ArrayList<>();
     private boolean enabled;
+    private boolean pinned;
 
     protected Module(String name, String description, Category category) {
         this.name = name;
@@ -63,5 +64,29 @@ public abstract class Module {
 
     public List<Setting<?>> getSettings() {
         return Collections.unmodifiableList(settings);
+    }
+
+    /** Favourite in the mod menu: listed first and under the Favourites tab. */
+    public boolean isPinned() {
+        return pinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
+    }
+
+    /** Name of the key this module is used with (e.g. "C" for Zoom), or null when it has none. */
+    public String keyHint() {
+        return null;
+    }
+
+    /** True when every setting still has the value the module shipped with. */
+    public boolean hasDefaultSettings() {
+        for (Setting<?> s : settings) if (!s.isDefault()) return false;
+        return true;
+    }
+
+    public void resetSettings() {
+        for (Setting<?> s : settings) s.reset();
     }
 }

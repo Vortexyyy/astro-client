@@ -1,8 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import type { JavaMode, UpdateState } from '@shared/types';
+import type { JavaMode, LauncherTheme, UpdateState } from '@shared/types';
 import type { AppState } from '../App';
 import { astro, errorText } from '../api';
 import BackupCard from '../components/BackupCard';
+import Icon from '../components/Icon';
+
+const THEMES: Array<{ id: LauncherTheme; name: string; note: string }> = [
+  { id: 'nebula', name: 'Nebula', note: 'Violet with a cyan glow' },
+  { id: 'aurora', name: 'Aurora', note: 'Cyan lead, violet trim' },
+  { id: 'amethyst', name: 'Amethyst', note: 'Deep purple and lavender' }
+];
 import SkinHead from '../components/SkinHead';
 import { MicrosoftLogo } from '../components/TitleBar';
 
@@ -25,6 +32,8 @@ export default function Settings({ app }: { app: AppState }) {
     return astro.onUpdateState(setUpdate);
   }, []);
 
+  // Re-sync the form only when its own saved values change, so switching the theme or an account
+  // doesn't wipe edits that haven't been saved yet.
   useEffect(() => {
     if (!s) return;
     setJavaMode(s.javaMode);
@@ -32,7 +41,18 @@ export default function Settings({ app }: { app: AppState }) {
     setHideOnLaunch(s.hideOnLaunch);
     setAutoInstallAstro(s.autoInstallAstro);
     setOfflineName(s.offlineName);
-  }, [s]);
+  }, [s?.javaMode, s?.javaPath, s?.hideOnLaunch, s?.autoInstallAstro, s?.offlineName]);
+
+  /** Appearance changes apply at once (optimistically) and save in the background. */
+  const setAppearance = (patch: { theme?: LauncherTheme; reduceEffects?: boolean }) => {
+    if (!s) return;
+    const previous = s;
+    app.setSettings({ ...s, ...patch });
+    astro.updateSettings(patch).then(app.setSettings, (err) => {
+      app.setSettings(previous);
+      app.notify(errorText(err), 'error');
+    });
+  };
 
   async function run(task: () => Promise<void>, ok?: string) {
     setBusy(true);
@@ -98,6 +118,42 @@ export default function Settings({ app }: { app: AppState }) {
             {update.status === 'checking' ? 'Checking…' : 'Check for updates'}
           </button>
         )}
+      </div>
+
+      <div className="card appearance-card">
+        <div className="row spread">
+          <div>
+            <h3>Appearance</h3>
+            <p className="muted small-text">Pick an accent. It applies right away and is remembered.</p>
+          </div>
+          <button type="button" className="btn-ghost small" onClick={app.showShortcuts}>
+            <Icon name="keyboard" size={14} />
+            Keyboard shortcuts
+          </button>
+        </div>
+        <div className="theme-grid" role="radiogroup" aria-label="Accent theme">
+          {THEMES.map((t) => (
+            <label key={t.id} className={`theme-option ${s.theme === t.id ? 'on' : ''}`} data-preview={t.id}>
+              <input type="radio" name="theme" checked={s.theme === t.id} onChange={() => setAppearance({ theme: t.id })} />
+              <span className="theme-swatch" aria-hidden="true">
+                <span />
+              </span>
+              <span className="theme-text">
+                <strong>{t.name}</strong>
+                <span className="muted small-text">{t.note}</span>
+              </span>
+              <Icon name="check" size={16} className="theme-check" />
+            </label>
+          ))}
+        </div>
+        <label className="switch-row">
+          <input type="checkbox" checked={s.reduceEffects} onChange={(e) => setAppearance({ reduceEffects: e.target.checked })} />
+          <span className="switch" aria-hidden="true" />
+          <span>
+            Reduce effects
+            <span className="muted small-text switch-note">Stills the starfield and animations and turns off glass blur. Good for slower PCs.</span>
+          </span>
+        </label>
       </div>
 
       <BackupCard app={app} />

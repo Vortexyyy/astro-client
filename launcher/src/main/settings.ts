@@ -2,7 +2,7 @@ import { app, safeStorage } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import type { AccountInfo, JavaMode, PublicSettings, ServerEntry, SettingsPatch } from '@shared/types';
+import type { AccountInfo, JavaMode, LauncherTheme, PublicSettings, ServerEntry, SettingsPatch } from '@shared/types';
 import { paths } from './paths';
 
 interface StoredAccount extends AccountInfo {
@@ -21,6 +21,8 @@ interface StoredSettings {
   accounts: StoredAccount[];
   activeAccount: string | null;
   servers: ServerEntry[];
+  theme: LauncherTheme;
+  reduceEffects: boolean;
   secrets: { curseforgeApiKey?: string };
 }
 
@@ -36,6 +38,8 @@ const defaults: StoredSettings = {
   accounts: [],
   activeAccount: null,
   servers: [],
+  theme: 'nebula',
+  reduceEffects: false,
   secrets: {}
 };
 
@@ -101,8 +105,16 @@ function toPublic(s: StoredSettings): PublicSettings {
     hideOnLaunch: s.hideOnLaunch,
     servers: s.servers,
     offlineAllowed: !app.isPackaged,
-    offlineName: s.offlineName
+    offlineName: s.offlineName,
+    theme: isTheme(s.theme) ? s.theme : 'nebula',
+    reduceEffects: Boolean(s.reduceEffects)
   };
+}
+
+const THEMES: readonly LauncherTheme[] = ['nebula', 'aurora', 'amethyst'];
+
+function isTheme(value: unknown): value is LauncherTheme {
+  return THEMES.includes(value as LauncherTheme);
 }
 
 export async function getPublicSettings(): Promise<PublicSettings> {
@@ -157,6 +169,11 @@ export async function updateSettings(patch: SettingsPatch): Promise<PublicSettin
   if (patch.javaPath !== undefined) next.javaPath = patch.javaPath.trim();
   if (patch.hideOnLaunch !== undefined) next.hideOnLaunch = Boolean(patch.hideOnLaunch);
   if (patch.autoInstallAstro !== undefined) next.autoInstallAstro = Boolean(patch.autoInstallAstro);
+  if (patch.theme !== undefined) {
+    if (!isTheme(patch.theme)) throw new Error('Unknown theme.');
+    next.theme = patch.theme;
+  }
+  if (patch.reduceEffects !== undefined) next.reduceEffects = Boolean(patch.reduceEffects);
   if (patch.offlineName !== undefined) {
     const name = patch.offlineName.trim();
     if (!/^\w{3,16}$/.test(name)) throw new Error('Offline name must be 3-16 letters, digits or _.');

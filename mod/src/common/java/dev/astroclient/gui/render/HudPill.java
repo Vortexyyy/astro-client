@@ -53,7 +53,10 @@ public final class HudPill {
                 RenderUtil.panel(context, x, y, width, HEIGHT, Theme.R_MD, Theme.HUD_BACKGROUND, Theme.BORDER);
             } else {
                 RenderUtil.roundedRect(context, x, y, width, HEIGHT, 5, Theme.HUD_BACKGROUND);
-                RenderUtil.roundedRect(context, x, y + 3, 2, HEIGHT - 6, 1, Theme.ACCENT);
+                // glass sheen across the top half: one gradient quad
+                if (ThemeSettings.get().effects != ThemeSettings.Quality.OFF) context.fillGradient(x + 3, y + 1, x + width - 3, y + 8, 0x1AFFFFFF, 0x00FFFFFF);
+                // violet-to-cyan accent bar: one gradient quad
+                context.fillGradient(x + 1, y + 3, x + 3, y + HEIGHT - 3, Theme.ACCENT, Theme.ACCENT_2);
             }
         }
         if (sharp) {

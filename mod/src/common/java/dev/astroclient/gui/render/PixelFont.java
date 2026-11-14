@@ -37,6 +37,16 @@ public final class PixelFont {
 
     /** Draws text with a left-to-right gradient between two colours. Unknown characters render as spaces. */
     public static void draw(DrawContext context, String text, int x, int y, int scale, int spacing, int from, int to) {
+        draw(context, text, x, y, scale, spacing, from, to, -1f);
+    }
+
+    /**
+     * Same, with a band of light at {@code sheen} (0..1 across the text; outside that range there is none)
+     * for the logo's sweep.
+     */
+    public static void draw(DrawContext context, String text, int x, int y, int scale, int spacing, int from, int to, float sheen) {
+        boolean lit = sheen > -0.25f && sheen < 1.25f;
+        int white = 0x00FFFFFF | (Math.max(from >>> 24, to >>> 24) << 24);
         int total = Math.max(1, width(text, scale, spacing));
         int cx = x;
         for (char c : text.toCharArray()) {
@@ -54,7 +64,13 @@ public final class PixelFont {
                         while (col < GLYPH_W && line.charAt(col) == '#') col++;
                         int x1 = cx + start * scale;
                         int x2 = cx + col * scale;
-                        int color = Theme.lerp(from, to, (x1 - x + (x2 - x1) / 2f) / total);
+                        float f = (x1 - x + (x2 - x1) / 2f) / total;
+                        int color = Theme.lerp(from, to, f);
+                        if (lit) {
+                            // the band leans like italic light: lower rows are hit slightly later
+                            float d = Math.abs(f - sheen + row * 0.012f) / 0.2f;
+                            if (d < 1f) color = Theme.lerp(color, white, (1f - d) * 0.85f);
+                        }
                         context.fill(x1, y + row * scale, x2, y + (row + 1) * scale, color);
                     }
                 }

@@ -7,6 +7,11 @@ import net.minecraft.util.Util;
  * so animations feel the same at 30 and 300 FPS.
  */
 public final class Animation {
+    /** Global speed multiplier from the "Animations" option in Customize (1 = normal). */
+    private static float rate = 1f;
+    /** Animations off: values jump straight to their target and decorative motion stands still. */
+    private static boolean instant;
+
     private final float speed;
     private float value;
     private float target;
@@ -37,13 +42,31 @@ public final class Animation {
         long now = Util.getMeasuringTimeMs();
         float dt = Math.min((now - lastUpdate) / 1000f, 0.1f);
         lastUpdate = now;
-        value += (target - value) * (1f - (float) Math.exp(-speed * dt));
+        if (instant) {
+            value = target;
+            return value;
+        }
+        value += (target - value) * (1f - (float) Math.exp(-speed * rate * dt));
         if (Math.abs(target - value) < 0.001f) value = target;
         return value;
     }
 
     public float get() {
         return value;
+    }
+
+    /** Sets the global animation speed; 0 or less turns animations off. */
+    public static void rate(float multiplier) {
+        instant = multiplier <= 0f;
+        rate = instant ? 1f : multiplier;
+    }
+
+    /**
+     * Seconds on a shared clock for decorative motion (shimmer, sheen, aurora). Runs at the global
+     * animation speed and stands still when animations are off.
+     */
+    public static float clock() {
+        return instant ? 0f : (Util.getMeasuringTimeMs() % 3_600_000L) / 1000f * rate;
     }
 
     public static float easeOutBack(float t) {
