@@ -266,13 +266,20 @@ export default function Profiles({ app }: { app: AppState }) {
                 <button
                   className="btn-danger"
                   disabled={Boolean(busy)}
-                  onClick={() =>
-                    window.confirm(`Move "${profile.name}" (including its worlds) to the recycle bin?`) &&
-                    run('Deleting', async () => {
-                      await astro.deleteProfile(profile.id);
-                      await app.refresh();
-                    })
-                  }
+                  onClick={async () => {
+                    if (
+                      await app.confirm({
+                        title: 'Delete profile?',
+                        message: `Move "${profile.name}" (including its worlds) to the recycle bin?`,
+                        confirmLabel: 'Move to recycle bin',
+                        danger: true
+                      })
+                    )
+                      void run('Deleting', async () => {
+                        await astro.deleteProfile(profile.id);
+                        await app.refresh();
+                      });
+                  }}
                 >
                   Delete
                 </button>

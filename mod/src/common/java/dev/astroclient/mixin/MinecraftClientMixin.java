@@ -20,7 +20,10 @@ public abstract class MinecraftClientMixin {
      */
     @ModifyVariable(method = "setScreen", at = @At("HEAD"), argsOnly = true)
     private Screen astroclient$replaceMenus(Screen screen) {
-        if (screen == null || !ThemeSettings.get().customMenus) return screen;
+        if (!ThemeSettings.get().customMenus) return screen;
+        // setScreen(null) with no world builds vanilla's TitleScreen inside the method, after this hook,
+        // so closing any menu at the main menu would otherwise land on the vanilla title screen
+        if (screen == null) return ((MinecraftClient) (Object) this).world == null ? new AstroTitleScreen() : null;
         if (screen.getClass() == TitleScreen.class) return new AstroTitleScreen();
         if (screen.getClass() == MultiplayerScreen.class) return new ServersScreen(new AstroTitleScreen());
         return screen;

@@ -2,6 +2,7 @@ package dev.astroclient.gui.title;
 
 import dev.astroclient.compat.AstroButtonBase;
 import dev.astroclient.gui.render.Animation;
+import dev.astroclient.gui.render.Icons;
 import dev.astroclient.gui.render.RenderUtil;
 import dev.astroclient.gui.render.Theme;
 import dev.astroclient.gui.theme.ThemeSettings;
@@ -58,6 +59,10 @@ public class AstroButton extends AstroButtonBase {
         if (leftAligned) {
             float barH = (height - 10) * Math.max(0.35f, h);
             RenderUtil.roundedRect(context, x + 6, y + height / 2f - barH / 2f, 2, barH, 1, Theme.withAlpha(Theme.ACCENT_2, alpha));
+            // chevron slides in from the left on hover
+            if (h > 0.02f) {
+                Icons.draw(context, Icons.RIGHT, x + width - 12 - Math.round(5 * (1f - h)), y + (height - 5) / 2, Theme.withAlpha(Theme.ACCENT_2, alpha * h));
+            }
         } else {
             // neon underline grows from the centre on hover
             float lineW = (width - radius * 2) * h;

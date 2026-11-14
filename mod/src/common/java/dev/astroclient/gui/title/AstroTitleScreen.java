@@ -7,6 +7,7 @@ import dev.astroclient.gui.custom.CustomizeScreen;
 import dev.astroclient.gui.render.Animation;
 import dev.astroclient.gui.render.PixelFont;
 import dev.astroclient.gui.render.RenderUtil;
+import dev.astroclient.gui.render.Starfield;
 import dev.astroclient.gui.render.Theme;
 import dev.astroclient.gui.servers.ServersScreen;
 import dev.astroclient.gui.theme.Backgrounds;
@@ -37,7 +38,20 @@ public class AstroTitleScreen extends AstroScreen {
     private static final int PLATE_H = 30;
     private static final String COPYRIGHT = "Copyright Mojang AB. Do not distribute!";
 
-    private final Animation intro = new Animation(0f, 3.5f);
+    // -- Tunables --
+    /** entrance speed for the logo, buttons and player (higher = quicker) */
+    private static final float INTRO_SPEED = 3.5f;
+    /** how quickly the stars follow the pointer */
+    private static final float POINTER_SPEED = 4f;
+    /** GUI px the player model slides in from */
+    private static final int MODEL_SLIDE = 40;
+    /** darkening behind the menu column so it stays readable over picture backgrounds (0..1) */
+    private static final float SCRIM = 0.55f;
+
+    private final Animation intro = new Animation(0f, INTRO_SPEED);
+    private final Animation pointerX = new Animation(0.5f, POINTER_SPEED);
+    private final Animation pointerY = new Animation(0.5f, POINTER_SPEED);
+    private int modelBaseX;
     private final List<AstroButton> buttons = new ArrayList<>();
     private final String versionLine;
     private ClickableWidget model;
@@ -84,7 +98,8 @@ public class AstroTitleScreen extends AstroScreen {
             modelH = Math.min(190, height - FOOTER - PLATE_H - 24);
             modelW = Math.round(modelH * 0.58f);
             model = Platform.playerModel(modelW, modelH);
-            model.setX(width - Math.max(30, width / 8) - modelW);
+            modelBaseX = width - Math.max(30, width / 8) - modelW;
+            model.setX(modelBaseX);
             model.setY(Math.max(8, (height - FOOTER - modelH - PLATE_H - 8) / 2));
             addDrawableChild(model);
         } else {
@@ -102,6 +117,10 @@ public class AstroTitleScreen extends AstroScreen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         float t = intro.update();
+        pointerX.setTarget(mouseX / (float) Math.max(1, width));
+        pointerY.setTarget(mouseY / (float) Math.max(1, height));
+        Starfield.pointer(pointerX.update(), pointerY.update());
+        if (model != null) model.setX(modelBaseX + Math.round((1f - Animation.easeOutCubic(t)) * MODEL_SLIDE));
         for (int i = 0; i < buttons.size(); i++) {
             float local = MathHelper.clamp(t * 1.6f - i * 0.12f, 0f, 1f);
             buttons.get(i).setIntro((1f - Animation.easeOutCubic(local)) * 14f, local);
@@ -131,6 +150,7 @@ public class AstroTitleScreen extends AstroScreen {
 
         float t = Animation.easeOutCubic(intro.get());
         int x = Math.max(24, width / 10);
+        RenderUtil.horizontalGradient(context, 0, 0, x + BUTTON_W + 90, height, Theme.withAlpha(0xFF05040F, SCRIM * t), 0x0005040F);
         int scale = logoScale;
         int logoY = this.logoY - Math.round((1f - t) * 10f);
 

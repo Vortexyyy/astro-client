@@ -141,9 +141,17 @@ export default function Settings({ app }: { app: AppState }) {
               <button
                 className="btn-danger small"
                 disabled={busy}
-                onClick={() =>
-                  window.confirm(`Remove ${a.name} from Astro?`) && run(async () => app.setSettings(await astro.removeAccount(a.uuid)))
-                }
+                onClick={async () => {
+                  if (
+                    await app.confirm({
+                      title: 'Remove account?',
+                      message: `Remove ${a.name} from Astro?`,
+                      confirmLabel: 'Remove',
+                      danger: true
+                    })
+                  )
+                    void run(async () => app.setSettings(await astro.removeAccount(a.uuid)));
+                }}
               >
                 Remove
               </button>

@@ -117,10 +117,17 @@ function AccountMenu({ app }: { app: AppState }) {
                 className="icon-button"
                 aria-label={`Remove ${a.name}`}
                 title="Remove account"
-                onClick={() =>
-                  window.confirm(`Sign out and remove ${a.name} from Astro?`) &&
-                  run(async () => app.setSettings(await astro.removeAccount(a.uuid)))
-                }
+                onClick={async () => {
+                  if (
+                    await app.confirm({
+                      title: 'Remove account?',
+                      message: `Sign out and remove ${a.name} from Astro?`,
+                      confirmLabel: 'Remove',
+                      danger: true
+                    })
+                  )
+                    void run(async () => app.setSettings(await astro.removeAccount(a.uuid)));
+                }}
               >
                 <Icon name="x" />
               </button>

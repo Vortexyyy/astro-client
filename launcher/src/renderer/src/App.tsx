@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ConsoleLine, GameState, Profile, PublicSettings } from '@shared/types';
 import { astro, errorText } from './api';
+import ConfirmDialog, { type ConfirmRequest } from './components/ConfirmDialog';
 import ImportWizard from './components/ImportWizard';
 import Starfield from './components/Starfield';
 import TitleBar, { type Page } from './components/TitleBar';
@@ -36,6 +37,7 @@ export interface AppState {
   navigate(page: Page): void;
   clearConsole(): Promise<void>;
   openImport(): void;
+  confirm(request: ConfirmRequest): Promise<boolean>;
 }
 
 const idleGame: GameState = { running: false, profileId: null, profileName: null, startedAt: null };
@@ -51,10 +53,33 @@ export default function App() {
   const [consoleLines, setConsoleLines] = useState<ConsoleLine[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; kind: 'info' | 'error' } | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    request: ConfirmRequest;
+    resolve: (ok: boolean) => void;
+  } | null>(null);
 
   const notify = useCallback((message: string, kind: 'info' | 'error' = 'info') => {
     setToast({ message, kind });
     window.setTimeout(() => setToast((t) => (t?.message === message ? null : t)), 5000);
+  }, []);
+
+  const confirm = useCallback(
+    (request: ConfirmRequest) =>
+      new Promise<boolean>((resolve) => {
+        // a new request supersedes one still open, which counts as cancelled
+        setPendingConfirm((prev) => {
+          prev?.resolve(false);
+          return { request, resolve };
+        });
+      }),
+    []
+  );
+
+  const answerConfirm = useCallback((ok: boolean) => {
+    setPendingConfirm((prev) => {
+      prev?.resolve(ok);
+      return null;
+    });
   }, []);
 
   const refresh = useCallback(async () => {
@@ -137,7 +162,8 @@ export default function App() {
       await astro.clearConsole();
       setConsoleLines([]);
     },
-    openImport: () => setImportOpen(true)
+    openImport: () => setImportOpen(true),
+    confirm
   };
 
   return (
@@ -152,6 +178,7 @@ export default function App() {
         {page === 'settings' && <Settings app={state} />}
       </main>
       {importOpen && <ImportWizard app={state} onClose={() => setImportOpen(false)} />}
+      {pendingConfirm && <ConfirmDialog request={pendingConfirm.request} onAnswer={answerConfirm} />}
       {toast && (
         <div className={`toast toast-${toast.kind}`} role={toast.kind === 'error' ? 'alert' : 'status'}>
           <Icon name={toast.kind === 'error' ? 'alert' : 'check'} size={18} className="toast-icon" />

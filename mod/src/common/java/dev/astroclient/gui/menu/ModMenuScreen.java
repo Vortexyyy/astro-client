@@ -9,6 +9,8 @@ import dev.astroclient.gui.render.Icons;
 import dev.astroclient.gui.render.PixelFont;
 import dev.astroclient.gui.render.RenderUtil;
 import dev.astroclient.gui.render.Theme;
+import dev.astroclient.gui.theme.Backgrounds;
+import dev.astroclient.gui.theme.ThemeSettings;
 import dev.astroclient.module.Category;
 import dev.astroclient.module.Module;
 import dev.astroclient.module.setting.BooleanSetting;
@@ -51,13 +53,28 @@ public class ModMenuScreen extends AstroScreen {
     private static final int OFF_BAR = 0xFF2A2750;
     private static final int BORDER = 0x26FFFFFF;
 
+    // -- Tunables: animation speeds (higher = snappier; ~8 settles in about half a second) --
+    private static final float OPEN_SPEED = 12f;
+    private static final float HOVER_SPEED = 16f;
+    private static final float TOGGLE_SPEED = 12f;
+    private static final float SCROLL_SPEED = 18f;
+    /** content fade/slide when switching category or opening a settings page */
+    private static final float PAGE_SPEED = 9f;
+    /** glow pulse on a card when its mod is toggled */
+    private static final float PULSE_SPEED = 5f;
+    /** GUI pixels scrolled per mouse-wheel notch */
+    private static final float SCROLL_STEP = 24f;
+
     /** Tab survives closing and reopening the menu; null = All. */
     private static Category lastTab;
 
-    private final Animation open = new Animation(0f, 12f);
-    private final Animation scroll = new Animation(0f, 18f);
-    private final Animation settingsScroll = new Animation(0f, 18f);
+    private final Animation open = new Animation(0f, OPEN_SPEED);
+    private final Animation scroll = new Animation(0f, SCROLL_SPEED);
+    private final Animation settingsScroll = new Animation(0f, SCROLL_SPEED);
+    private final Animation page = new Animation(0f, PAGE_SPEED);
+    private final Animation selector = new Animation(0f, 14f);
     private final Map<Object, Animation> anims = new HashMap<>();
+    private final Map<Module, Boolean> lastEnabled = new HashMap<>();
     private TextFieldWidget search;
     private Category tab = lastTab;
     private Module settingsFor;
@@ -81,6 +98,13 @@ public class ModMenuScreen extends AstroScreen {
     public ModMenuScreen() {
         super(Text.literal("Astro Client"));
         open.setTarget(1f);
+        page.setTarget(1f);
+    }
+
+    /** Replays the content entrance: cards (or settings rows) fade and slide in. */
+    private void pageIn() {
+        page.snap(0f);
+        page.setTarget(1f);
     }
 
     @Override
@@ -203,6 +227,8 @@ public class ModMenuScreen extends AstroScreen {
         float t = open.update();
         layout(Math.round((1f - Animation.easeOutCubic(t)) * 16f));
 
+        // opened from the main menu there is no world behind the panel, so draw the menu background instead of black
+        if (client.world == null) Backgrounds.draw(context, ThemeSettings.get().menuBackground, width, height);
         context.fill(0, 0, width, height, Theme.withAlpha(0xB005060F, t));
         RenderUtil.glow(context, px, py, pw, ph, RADIUS, Theme.withAlpha(Theme.ACCENT, 0.4f * t), 12);
         RenderUtil.roundedRect(context, px, py, pw, ph, RADIUS, Theme.withAlpha(0xF20D0B22, t));
@@ -210,12 +236,15 @@ public class ModMenuScreen extends AstroScreen {
 
         renderSidebar(context, mouseX, mouseY, t);
 
+        float p = page.update();
         Rect area = content();
         if (settingsFor == null) {
             renderGridHeader(context, mouseX, mouseY, delta, t);
-            renderGrid(context, area, mouseX, mouseY, t);
+            renderGrid(context, area, mouseX, mouseY, t, p);
         } else {
-            renderSettings(context, area, mouseX, mouseY, t);
+            // settings pages slide in from the right
+            int slide = Math.round((1f - Animation.easeOutCubic(p)) * 12f);
+            renderSettings(context, new Rect(area.x + slide, area.y, area.w, area.h), mouseX, mouseY, t * p);
         }
         renderFooter(context, t);
     }
@@ -230,23 +259,33 @@ public class ModMenuScreen extends AstroScreen {
         boolean text = Theme.visible(t);
 
         List<Category> tabs = tabs();
+        // one highlight that slides between rows instead of each row fading on its own
+        int selIndex = settingsFor == null && query().isEmpty() ? tabs.indexOf(tab) : -1;
+        Animation selAlpha = anim("selector", "alpha", 0f, 14f);
+        if (selIndex >= 0) {
+            if (selAlpha.get() < 0.05f) selector.snap(selIndex);
+            selector.setTarget(selIndex);
+        }
+        selAlpha.setTarget(selIndex >= 0 ? 1f : 0f);
+        float selY = py + 40 + selector.update() * (CAT_H + 2);
+        float sa = selAlpha.update();
+        if (sa > 0.01f) {
+            RenderUtil.roundedRect(context, px + 8, selY, SIDE - 16, CAT_H, 5, Theme.withAlpha(Theme.withAlpha(Theme.ACCENT, 0.22f), t * sa));
+            RenderUtil.roundedRect(context, px + 8, selY + 5, 2, CAT_H - 10, 1, Theme.withAlpha(Theme.ACCENT_2, t * sa));
+        }
         for (int i = 0; i < tabs.size(); i++) {
             Category c = tabs.get(i);
             Rect row = sidebarRow(i);
             String label = c == null ? "All" : c.displayName();
-            boolean selected = c == tab && settingsFor == null && query().isEmpty();
-            Animation hover = anim(label, "tab", 0f, 16f);
+            boolean selected = i == selIndex;
+            Animation hover = anim(label, "tab", 0f, HOVER_SPEED);
             hover.setTarget(row.contains(mouseX, mouseY) ? 1f : 0f);
             float h = hover.update();
             Animation sel = anim(label, "sel", selected ? 1f : 0f, 14f);
             sel.setTarget(selected ? 1f : 0f);
             float s = sel.update();
 
-            if (s > 0.01f || h > 0.01f) {
-                int bg = Theme.lerp(0x10FFFFFF, Theme.withAlpha(Theme.ACCENT, 0.22f), s);
-                RenderUtil.roundedRect(context, row.x, row.y, row.w, row.h, 5, Theme.withAlpha(bg, t * Math.max(s, h)));
-            }
-            if (s > 0.01f) RenderUtil.roundedRect(context, row.x, row.y + 5, 2, (row.h - 10) * s, 1, Theme.withAlpha(Theme.ACCENT_2, t * s));
+            if (h > 0.01f && !selected) RenderUtil.roundedRect(context, row.x, row.y, row.w, row.h, 5, Theme.withAlpha(0x10FFFFFF, t * h));
             Icons.draw(context, Icons.forCategory(c), row.x + 7, row.y + (row.h - Icons.SIZE) / 2,
                     Theme.withAlpha(Theme.lerp(Theme.MUTED, Theme.ACCENT_2, s), t));
             if (!text) continue;
@@ -262,7 +301,7 @@ public class ModMenuScreen extends AstroScreen {
         }
 
         Rect edit = editHudButton();
-        Animation hover = anim("edit", "hover", 0f, 16f);
+        Animation hover = anim("edit", "hover", 0f, HOVER_SPEED);
         hover.setTarget(edit.contains(mouseX, mouseY) ? 1f : 0f);
         float h = hover.update();
         RenderUtil.roundedRect(context, edit.x, edit.y, edit.w, edit.h, 5, Theme.withAlpha(Theme.lerp(CARD_HOVER, Theme.ACCENT, h), t));
@@ -279,14 +318,16 @@ public class ModMenuScreen extends AstroScreen {
             context.drawText(textRenderer, title, x, py + 14, Theme.withAlpha(0xFFFFFFFF, t), false);
         }
         Rect box = searchBox();
-        boolean focused = search.isFocused();
-        if (focused) RenderUtil.roundedRect(context, box.x - 1, box.y - 1, box.w + 2, box.h + 2, 6, Theme.withAlpha(Theme.ACCENT, t));
-        RenderUtil.roundedRect(context, box.x, box.y, box.w, box.h, 5, Theme.withAlpha(focused ? 0xFF1B1846 : 0xFF16143A, t));
-        Icons.draw(context, Icons.SEARCH, box.x + 5, box.y + 5, Theme.withAlpha(focused ? Theme.ACCENT_2 : Theme.MUTED, t));
+        Animation focus = anim("search", "focus", 0f, HOVER_SPEED);
+        focus.setTarget(search.isFocused() ? 1f : 0f);
+        float f = focus.update();
+        if (f > 0.01f) RenderUtil.roundedRect(context, box.x - 1, box.y - 1, box.w + 2, box.h + 2, 6, Theme.withAlpha(Theme.ACCENT, t * f));
+        RenderUtil.roundedRect(context, box.x, box.y, box.w, box.h, 5, Theme.withAlpha(Theme.lerp(0xFF16143A, 0xFF1B1846, f), t));
+        Icons.draw(context, Icons.SEARCH, box.x + 5, box.y + 5, Theme.withAlpha(Theme.lerp(Theme.MUTED, Theme.ACCENT_2, f), t));
         if (Theme.visible(t)) search.render(context, mouseX, mouseY, delta);
     }
 
-    private void renderGrid(DrawContext context, Rect area, int mouseX, int mouseY, float t) {
+    private void renderGrid(DrawContext context, Rect area, int mouseX, int mouseY, float t, float p) {
         List<Module> modules = visibleModules();
         float max = maxScroll(modules.size());
         scroll.setTarget(MathHelper.clamp(scroll.getTarget(), 0f, max));
@@ -308,9 +349,18 @@ public class ModMenuScreen extends AstroScreen {
             Rect r = rects.get(i);
             if (r.y + r.h < area.y || r.y > area.y + area.h) continue;
             boolean hovered = area.contains(mouseX, mouseY) && r.contains(mouseX, mouseY);
-            renderCard(context, modules.get(i), r, hovered, modules.get(i) == target, mouseX, mouseY, t);
+            // entrance: cards fade and rise in one after another
+            float local = MathHelper.clamp(p * 1.6f - Math.min(i, 11) * 0.07f, 0f, 1f);
+            int rise = Math.round((1f - Animation.easeOutCubic(local)) * 8f);
+            renderCard(context, modules.get(i), new Rect(r.x, r.y + rise, r.w, r.h), hovered, modules.get(i) == target, mouseX, mouseY, t * local);
         }
         context.disableScissor();
+
+        // soften the clipped edges while there is more to scroll to
+        int edge = 0x000D0B22;
+        int solid = Theme.withAlpha(0xFF000000 | edge, t);
+        if (scroll.get() > 1f) context.fillGradient(area.x - 2, area.y - 1, area.x + area.w + 2, area.y + 9, solid, edge);
+        if (scroll.get() < max - 1f) context.fillGradient(area.x - 2, area.y + area.h - 10, area.x + area.w + 2, area.y + area.h, edge, solid);
 
         if (max > 0) {
             int thumbH = Math.max(16, Math.round(area.h * area.h / (area.h + max)));
@@ -321,12 +371,25 @@ public class ModMenuScreen extends AstroScreen {
     }
 
     private void renderCard(DrawContext context, Module m, Rect r, boolean hovered, boolean target, int mouseX, int mouseY, float t) {
-        Animation hover = anim(m, "hover", 0f, 16f);
+        Animation hover = anim(m, "hover", 0f, HOVER_SPEED);
         hover.setTarget(hovered ? 1f : 0f);
         float h = hover.update();
-        Animation on = anim(m, "on", m.isEnabled() ? 1f : 0f, 12f);
+        Animation on = anim(m, "on", m.isEnabled() ? 1f : 0f, TOGGLE_SPEED);
         on.setTarget(m.isEnabled() ? 1f : 0f);
         float e = on.update();
+
+        // glow pulse when the mod was just switched on or off (click, Enter or its keybind)
+        Boolean was = lastEnabled.put(m, m.isEnabled());
+        Animation pulse = anim(m, "pulse", 0f, PULSE_SPEED);
+        if (was != null && was != m.isEnabled()) {
+            pulse.snap(1f);
+            pulse.setTarget(0f);
+        }
+        float pu = pulse.update();
+        if (pu > 0.02f) {
+            RenderUtil.glow(context, r.x, r.y, r.w, r.h, 8, Theme.withAlpha(m.isEnabled() ? Theme.ACCENT_2 : Theme.MUTED, 0.6f * pu * t),
+                    Math.round(3 + 5 * (1f - pu)));
+        }
 
         // border: accent while enabled, brighter on hover, cyan for the Enter target
         int border = Theme.lerp(BORDER, Theme.withAlpha(Theme.ACCENT, 0.75f), e);
@@ -348,10 +411,12 @@ public class ModMenuScreen extends AstroScreen {
         boolean hasSettings = !m.getSettings().isEmpty();
         if (hasSettings) {
             Rect gear = gearRect(r);
-            boolean gearHover = gear.contains(mouseX, mouseY);
-            if (gearHover) RenderUtil.roundedRect(context, gear.x, gear.y, gear.w, gear.h, 3, Theme.withAlpha(0x22FFFFFF, t));
+            Animation gearHover = anim(m, "gear", 0f, HOVER_SPEED);
+            gearHover.setTarget(hovered && gear.contains(mouseX, mouseY) ? 1f : 0f);
+            float gh = gearHover.update();
+            if (gh > 0.01f) RenderUtil.roundedRect(context, gear.x, gear.y, gear.w, gear.h, 3, Theme.withAlpha(0x22FFFFFF, t * gh));
             Icons.drawCentered(context, Icons.GEAR, gear.x, gear.y, gear.w, gear.h,
-                    Theme.withAlpha(gearHover ? Theme.ACCENT_2 : Theme.lerp(0xFF5A5788, Theme.MUTED, h), t));
+                    Theme.withAlpha(Theme.lerp(Theme.lerp(0xFF5A5788, Theme.MUTED, h), Theme.ACCENT_2, gh), t));
         }
 
         if (!Theme.visible(t)) return;
@@ -359,7 +424,7 @@ public class ModMenuScreen extends AstroScreen {
             String initial = m.getName().substring(0, 1).toUpperCase(Locale.ROOT);
             context.drawText(textRenderer, initial, tx + (tile - textRenderer.getWidth(initial)) / 2 + 1, ty + 6, Theme.withAlpha(0xFFFFFFFF, t), false);
         }
-        String name = textRenderer.trimToWidth(m.getName(), r.w - 33 - 32);
+        String name = trimmed(m.getName(), r.w - 33 - 30);
         context.drawText(textRenderer, name, tx + tile + 6, r.y + 8, Theme.withAlpha(0xFFFFFFFF, t), false);
         context.drawText(textRenderer, m.isEnabled() ? "Enabled" : "Disabled", tx + tile + 6, r.y + 18,
                 Theme.withAlpha(Theme.lerp(Theme.MUTED, Theme.ACCENT_2, e), t), false);
@@ -418,8 +483,9 @@ public class ModMenuScreen extends AstroScreen {
     private void renderSettings(DrawContext context, Rect area, int mouseX, int mouseY, float t) {
         boolean text = Theme.visible(t);
         Rect back = backButton();
-        boolean backHover = back.contains(mouseX, mouseY);
-        RenderUtil.roundedRect(context, back.x, back.y, back.w, back.h, 5, Theme.withAlpha(backHover ? Theme.ACCENT : CARD_HOVER, t));
+        Animation backHover = anim("back", "hover", 0f, HOVER_SPEED);
+        backHover.setTarget(back.contains(mouseX, mouseY) ? 1f : 0f);
+        RenderUtil.roundedRect(context, back.x, back.y, back.w, back.h, 5, Theme.withAlpha(Theme.lerp(CARD_HOVER, Theme.ACCENT, backHover.update()), t));
         Icons.drawCentered(context, Icons.BACK, back.x, back.y, back.w, back.h, Theme.withAlpha(0xFFFFFFFF, t));
         String[] icon = Icons.forModule(settingsFor);
         int titleX = back.x + back.w + 8;
@@ -466,7 +532,7 @@ public class ModMenuScreen extends AstroScreen {
     }
 
     private float rowHover(Object key, Rect row, int mouseX, int mouseY) {
-        Animation hover = anim(key, "row", 0f, 16f);
+        Animation hover = anim(key, "row", 0f, HOVER_SPEED);
         hover.setTarget(row.contains(mouseX, mouseY) ? 1f : 0f);
         return hover.update();
     }
@@ -490,7 +556,7 @@ public class ModMenuScreen extends AstroScreen {
     private void renderSwitchRow(DrawContext context, Rect row, String label, boolean value, Object key, int mouseX, int mouseY, float t) {
         float hover = rowHover(key, row, mouseX, mouseY);
         RenderUtil.roundedRect(context, row.x, row.y, row.w, row.h, 5, Theme.withAlpha(Theme.lerp(CARD_BG, CARD_HOVER, hover), t));
-        Animation knob = anim(key, "knob", value ? 1f : 0f, 14f);
+        Animation knob = anim(key, "knob", value ? 1f : 0f, TOGGLE_SPEED);
         knob.setTarget(value ? 1f : 0f);
         drawSwitch(context, row.x + row.w - 28, row.y + (row.h - 10) / 2, knob.update(), t);
         if (Theme.visible(t)) context.drawText(textRenderer, label, row.x + 8, row.y + (row.h - 8) / 2, Theme.withAlpha(Theme.TEXT, t), false);
@@ -518,14 +584,21 @@ public class ModMenuScreen extends AstroScreen {
     // ── Input ───────────────────────────────────────────────────────────
 
     private void selectTab(Category c) {
+        if (c != tab || settingsFor != null) pageIn();
         tab = c;
         lastTab = c;
         settingsFor = null;
         scroll.snap(0f);
     }
 
+    private void closeSettings() {
+        settingsFor = null;
+        pageIn();
+    }
+
     private void openSettings(Module m) {
         settingsFor = m;
+        pageIn();
         settingsScroll.snap(0f);
         search.setFocused(false);
         setFocused(null);
@@ -572,7 +645,7 @@ public class ModMenuScreen extends AstroScreen {
         }
 
         if (backButton().contains(mouseX, mouseY)) {
-            settingsFor = null;
+            closeSettings();
             return true;
         }
         if (!new Rect(area.x, area.y + SETTINGS_TOP, area.w, area.h - SETTINGS_TOP).contains(mouseX, mouseY)) return false;
@@ -618,9 +691,9 @@ public class ModMenuScreen extends AstroScreen {
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         if (settingsFor == null) {
             float max = maxScroll(visibleModules().size());
-            scroll.setTarget(MathHelper.clamp(scroll.getTarget() - (float) verticalAmount * 24f, 0f, max));
+            scroll.setTarget(MathHelper.clamp(scroll.getTarget() - (float) verticalAmount * SCROLL_STEP, 0f, max));
         } else {
-            settingsScroll.setTarget(MathHelper.clamp(settingsScroll.getTarget() - (float) verticalAmount * 24f, 0f, maxSettingsScroll(content())));
+            settingsScroll.setTarget(MathHelper.clamp(settingsScroll.getTarget() - (float) verticalAmount * SCROLL_STEP, 0f, maxSettingsScroll(content())));
         }
         return true;
     }
@@ -629,7 +702,7 @@ public class ModMenuScreen extends AstroScreen {
     protected boolean onKeyPressed(int key, int scancode, int modifiers) {
         boolean ctrl = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
         if (key == GLFW.GLFW_KEY_ESCAPE) {
-            if (settingsFor != null) settingsFor = null;
+            if (settingsFor != null) closeSettings();
             else if (!search.getText().isEmpty()) search.setText("");
             else close();
             return true;
