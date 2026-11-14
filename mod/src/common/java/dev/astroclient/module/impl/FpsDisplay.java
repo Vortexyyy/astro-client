@@ -9,7 +9,12 @@ public final class FpsDisplay extends TextHudModule {
     }
 
     @Override
+    protected String label() {
+        return "FPS";
+    }
+
+    @Override
     protected String text(boolean editing) {
-        return mc.getCurrentFps() + " FPS";
+        return String.valueOf(mc.getCurrentFps());
     }
 }

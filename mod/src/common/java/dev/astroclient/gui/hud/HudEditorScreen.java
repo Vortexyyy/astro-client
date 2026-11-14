@@ -77,8 +77,8 @@ public class HudEditorScreen extends AstroScreen {
             String label = hovered.module().getName() + (hovered.module().hasPosition() ? "" : " (auto)");
             int lw = textRenderer.getWidth(label) + 8;
             int ly = hovered.y() > 14 ? hovered.y() - 13 : hovered.y() + hovered.h() + 2;
-            RenderUtil.roundedRect(context, hovered.x(), ly, lw, 11, 3, Theme.ACCENT);
-            context.drawText(textRenderer, label, hovered.x() + 4, ly + 2, 0xFFFFFFFF, false);
+            RenderUtil.roundedRect(context, hovered.x(), ly, lw, 11, Theme.R_SM, Theme.ACCENT);
+            context.drawText(textRenderer, label, hovered.x() + 4, ly + 2, Theme.ON_ACCENT, false);
         }
 
         String hint = "Drag to move  ·  Right-click to reset  ·  Esc when done";

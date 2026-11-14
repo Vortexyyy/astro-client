@@ -30,6 +30,18 @@ public final class Gfx {
         drawing.run();
     }
 
+    /** Rounded rect from cached corner masks, in framebuffer pixels. Returns false where unsupported. */
+    public static boolean roundedRect(DrawContext c, int x, int y, int w, int h, int r, int color) {
+        ShapeAtlas.roundedRect(c, x, y, w, h, r, color);
+        return true;
+    }
+
+    /** 9-slice glow (pad pixels, built from rings like the stacked-rect glow). Returns false where unsupported. */
+    public static boolean glow(DrawContext c, int x, int y, int w, int h, int r, int pad, int rings, int color) {
+        ShapeAtlas.glow(c, x, y, w, h, r, pad, rings, color);
+        return true;
+    }
+
     public static float guiScale() {
         return MinecraftClient.getInstance().getWindow().getScaleFactor();
     }

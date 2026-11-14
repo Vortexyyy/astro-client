@@ -1,5 +1,6 @@
 package dev.astroclient;
 
+import dev.astroclient.bench.Benchmark;
 import dev.astroclient.compat.Keys;
 import dev.astroclient.compat.Platform;
 import dev.astroclient.config.AstroConfig;
@@ -50,6 +51,7 @@ public final class AstroClient implements ClientModInitializer {
                 if (client.currentScreen == null) client.setScreen(new ModMenuScreen());
             }
             modules.tick(client);
+            Benchmark.tick(client);
         });
         Platform.registerHud(modules::renderHud);
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> saveConfig());
@@ -74,6 +76,7 @@ public final class AstroClient implements ClientModInitializer {
     }
 
     public void saveConfig() {
+        if (Benchmark.active()) return; // benchmark toggles modules; keep the player's config as it was
         config.save(modules);
     }
 }

@@ -41,7 +41,7 @@ public class CustomizeScreen extends AstroScreen {
         rows.clear();
         labels.clear();
         ThemeSettings t = ThemeSettings.get();
-        int count = 9;
+        int count = 11;
         ph = 40 + count * (ROW_H + GAP) + 34;
         px = (width - W) / 2;
         py = Math.max(10, (height - ph) / 2);
@@ -56,13 +56,26 @@ public class CustomizeScreen extends AstroScreen {
                 () -> t.serversBackground = nextBackground(t.serversBackground, true));
         y = row(y, () -> "Picture dim: " + t.backgroundDim + "%", () -> t.backgroundDim = (t.backgroundDim + 15) % 90);
         y = row(y, () -> "Panel opacity: " + t.panelOpacity + "%", () -> t.panelOpacity = t.panelOpacity >= 100 ? 40 : t.panelOpacity + 10);
-        y = row(y, () -> "Buttons: " + t.buttonStyle.label, () -> t.buttonStyle = next(ThemeSettings.ButtonStyle.values(), t.buttonStyle));
+        y = row(y, () -> "Corners: " + t.buttonStyle.label, () -> t.buttonStyle = next(ThemeSettings.ButtonStyle.values(), t.buttonStyle));
         y = row(y, () -> "Player model: " + (t.showPlayer ? "On" : "Off"), () -> t.showPlayer = !t.showPlayer);
         y = row(y, () -> "Astro menus: " + (t.customMenus ? "On" : "Off (vanilla)"), () -> t.customMenus = !t.customMenus);
+        y = row(y, () -> "Effects quality: " + t.effects.label, () -> t.effects = next(ThemeSettings.Quality.values(), t.effects));
+        y = row(y, () -> "HUD refresh: " + (t.hudRefreshHz == 0 ? "Every frame" : t.hudRefreshHz + " / sec"), () -> t.hudRefreshHz = nextRefresh(t.hudRefreshHz));
 
         int half = (W - 24 - 6) / 2;
         addDrawableChild(new AstroButton(px + 12, y + 6, half, ROW_H, Text.literal("Open pictures folder"), b -> Backgrounds.openFolder()));
         addDrawableChild(new AstroButton(px + 12 + half + 6, y + 6, half, ROW_H, Text.literal("Done"), b -> close()));
+    }
+
+    /** 10, 20, 30, 60 updates a second, then every frame. */
+    private static int nextRefresh(int hz) {
+        return switch (hz) {
+            case 10 -> 20;
+            case 20 -> 30;
+            case 30 -> 60;
+            case 60 -> 0;
+            default -> 10;
+        };
     }
 
     private int row(int y, Supplier<String> label, Runnable cycle) {

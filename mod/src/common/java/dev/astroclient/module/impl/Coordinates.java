@@ -11,9 +11,14 @@ public final class Coordinates extends TextHudModule {
     }
 
     @Override
+    protected String label() {
+        return "XYZ";
+    }
+
+    @Override
     protected String text(boolean editing) {
         String fmt = "%." + decimals.get().intValue() + "f";
-        if (mc.player == null) return editing ? String.format("XYZ " + fmt + " / " + fmt + " / " + fmt, 0.0, 64.0, 0.0) : null;
-        return String.format("XYZ " + fmt + " / " + fmt + " / " + fmt, mc.player.getX(), mc.player.getY(), mc.player.getZ());
+        if (mc.player == null) return editing ? String.format(fmt + " / " + fmt + " / " + fmt, 0.0, 64.0, 0.0) : null;
+        return String.format(fmt + " / " + fmt + " / " + fmt, mc.player.getX(), mc.player.getY(), mc.player.getZ());
     }
 }

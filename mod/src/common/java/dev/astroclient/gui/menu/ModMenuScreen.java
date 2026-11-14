@@ -48,10 +48,10 @@ public class ModMenuScreen extends AstroScreen {
     private static final int MIN_CARD_W = 118;
     private static final int RADIUS = 9;
     private static final int SETTINGS_TOP = 16;
-    private static final int CARD_BG = 0xFF17153A;
-    private static final int CARD_HOVER = 0xFF221D4F;
-    private static final int OFF_BAR = 0xFF2A2750;
-    private static final int BORDER = 0x26FFFFFF;
+    private static final int CARD_BG = Theme.CARD;
+    private static final int CARD_HOVER = Theme.CARD_HOVER;
+    private static final int OFF_BAR = Theme.TRACK;
+    private static final int BORDER = Theme.BORDER;
 
     // -- Tunables: animation speeds (higher = snappier; ~8 settles in about half a second) --
     private static final float OPEN_SPEED = 12f;
@@ -128,6 +128,10 @@ public class ModMenuScreen extends AstroScreen {
         search.setX(box.x + 17);
         search.setY(box.y + 5);
         search.setWidth(box.w - 21);
+    }
+
+    private static boolean sharp() {
+        return ThemeSettings.get().sharp();
     }
 
     private Animation anim(Object key, String kind, float initial, float speed) {
@@ -230,9 +234,12 @@ public class ModMenuScreen extends AstroScreen {
         // opened from the main menu there is no world behind the panel, so draw the menu background instead of black
         if (client.world == null) Backgrounds.draw(context, ThemeSettings.get().menuBackground, width, height);
         context.fill(0, 0, width, height, Theme.withAlpha(0xB005060F, t));
-        RenderUtil.glow(context, px, py, pw, ph, RADIUS, Theme.withAlpha(Theme.ACCENT, 0.4f * t), 12);
-        RenderUtil.roundedRect(context, px, py, pw, ph, RADIUS, Theme.withAlpha(0xF20D0B22, t));
-        context.fill(px + SIDE, py + 10, px + SIDE + 1, py + ph - 10, Theme.withAlpha(BORDER, t));
+        if (!sharp()) RenderUtil.glow(context, px, py, pw, ph, RADIUS, Theme.withAlpha(Theme.ACCENT, 0.4f * t), 12);
+        RenderUtil.panel(context, px, py, pw, ph, RADIUS, Theme.withAlpha(Theme.PANEL_DEEP, t), Theme.withAlpha(BORDER, t));
+        // sidebar divider and (Orbit) header rule
+        int inset = sharp() ? 0 : 10;
+        RenderUtil.roundedRect(context, px + SIDE, py + inset, 1, ph - 2 * inset, 0, Theme.withAlpha(BORDER, t));
+        if (sharp()) RenderUtil.roundedRect(context, px + SIDE, py + HEADER, pw - SIDE, 1, 0, Theme.withAlpha(BORDER, t));
 
         renderSidebar(context, mouseX, mouseY, t);
 
@@ -255,7 +262,12 @@ public class ModMenuScreen extends AstroScreen {
     }
 
     private void renderSidebar(DrawContext context, int mouseX, int mouseY, float t) {
-        PixelFont.draw(context, "ASTRO", px + 14, py + 14, 2, 2, Theme.withAlpha(0xFFFFFFFF, t), Theme.withAlpha(Theme.ACCENT, t));
+        if (sharp()) {
+            RenderUtil.roundedRect(context, px + 12, py + 15, 6, 6, 0, Theme.withAlpha(Theme.ACCENT, t));
+            PixelFont.draw(context, "ASTRO", px + 23, py + 14, 2, 2, Theme.withAlpha(Theme.TEXT, t), Theme.withAlpha(Theme.TEXT, t));
+        } else {
+            PixelFont.draw(context, "ASTRO", px + 14, py + 14, 2, 2, Theme.withAlpha(0xFFFFFFFF, t), Theme.withAlpha(Theme.ACCENT, t));
+        }
         boolean text = Theme.visible(t);
 
         List<Category> tabs = tabs();
@@ -270,8 +282,13 @@ public class ModMenuScreen extends AstroScreen {
         float selY = py + 40 + selector.update() * (CAT_H + 2);
         float sa = selAlpha.update();
         if (sa > 0.01f) {
-            RenderUtil.roundedRect(context, px + 8, selY, SIDE - 16, CAT_H, 5, Theme.withAlpha(Theme.withAlpha(Theme.ACCENT, 0.22f), t * sa));
-            RenderUtil.roundedRect(context, px + 8, selY + 5, 2, CAT_H - 10, 1, Theme.withAlpha(Theme.ACCENT_2, t * sa));
+            if (sharp()) {
+                RenderUtil.roundedRect(context, px + 1, selY, SIDE - 1, CAT_H, 0, Theme.withAlpha(CARD_HOVER, t * sa));
+                RenderUtil.roundedRect(context, px + 1, selY, 2, CAT_H, 0, Theme.withAlpha(Theme.ACCENT, t * sa));
+            } else {
+                RenderUtil.roundedRect(context, px + 8, selY, SIDE - 16, CAT_H, 5, Theme.withAlpha(Theme.withAlpha(Theme.ACCENT, 0.22f), t * sa));
+                RenderUtil.roundedRect(context, px + 8, selY + 5, 2, CAT_H - 10, 1, Theme.withAlpha(Theme.ACCENT_2, t * sa));
+            }
         }
         for (int i = 0; i < tabs.size(); i++) {
             Category c = tabs.get(i);
@@ -287,10 +304,10 @@ public class ModMenuScreen extends AstroScreen {
 
             if (h > 0.01f && !selected) RenderUtil.roundedRect(context, row.x, row.y, row.w, row.h, 5, Theme.withAlpha(0x10FFFFFF, t * h));
             Icons.draw(context, Icons.forCategory(c), row.x + 7, row.y + (row.h - Icons.SIZE) / 2,
-                    Theme.withAlpha(Theme.lerp(Theme.MUTED, Theme.ACCENT_2, s), t));
+                    Theme.withAlpha(Theme.lerp(Theme.MUTED, sharp() ? Theme.ACCENT : Theme.ACCENT_2, s), t));
             if (!text) continue;
             context.drawText(textRenderer, label, row.x + 21, row.y + 6,
-                    Theme.withAlpha(Theme.lerp(Theme.MUTED, 0xFFFFFFFF, Math.max(s, h * 0.7f)), t), false);
+                    Theme.withAlpha(Theme.lerp(Theme.MUTED, Theme.TEXT, Math.max(s, h * 0.7f)), t), false);
             List<Module> mods = inTab(c);
             long on = mods.stream().filter(Module::isEnabled).count();
             String count = on + "/" + mods.size();
@@ -304,26 +321,37 @@ public class ModMenuScreen extends AstroScreen {
         Animation hover = anim("edit", "hover", 0f, HOVER_SPEED);
         hover.setTarget(edit.contains(mouseX, mouseY) ? 1f : 0f);
         float h = hover.update();
-        RenderUtil.roundedRect(context, edit.x, edit.y, edit.w, edit.h, 5, Theme.withAlpha(Theme.lerp(CARD_HOVER, Theme.ACCENT, h), t));
+        RenderUtil.panel(context, edit.x, edit.y, edit.w, edit.h, 5, Theme.withAlpha(Theme.lerp(CARD_HOVER, Theme.ACCENT, h), t),
+                Theme.withAlpha(Theme.lerp(BORDER, Theme.ACCENT, h), t));
+        int onEdit = Theme.lerp(Theme.TEXT, Theme.ON_ACCENT, h);
         int labelW = Icons.SIZE + 5 + textRenderer.getWidth("Edit HUD");
         int lx = edit.x + (edit.w - labelW) / 2;
-        Icons.draw(context, Icons.PENCIL, lx, edit.y + 6, Theme.withAlpha(0xFFFFFFFF, t));
-        if (text) context.drawText(textRenderer, "Edit HUD", lx + Icons.SIZE + 5, edit.y + 6, Theme.withAlpha(0xFFFFFFFF, t), false);
+        Icons.draw(context, Icons.PENCIL, lx, edit.y + 6, Theme.withAlpha(onEdit, t));
+        if (text) context.drawText(textRenderer, "Edit HUD", lx + Icons.SIZE + 5, edit.y + 6, Theme.withAlpha(onEdit, t), false);
     }
 
     private void renderGridHeader(DrawContext context, int mouseX, int mouseY, float delta, float t) {
         int x = px + SIDE + PAD;
         if (Theme.visible(t)) {
             String title = !query().isEmpty() ? "Search results" : tab == null ? "All mods" : tab.displayName();
-            context.drawText(textRenderer, title, x, py + 14, Theme.withAlpha(0xFFFFFFFF, t), false);
+            if (sharp()) {
+                context.drawText(textRenderer, !query().isEmpty() ? "SEARCH" : "CATEGORY", x, py + 7, Theme.withAlpha(Theme.MUTED, t), false);
+                context.drawText(textRenderer, title, x, py + 19, Theme.withAlpha(Theme.TEXT, t), false);
+            } else {
+                context.drawText(textRenderer, title, x, py + 14, Theme.withAlpha(0xFFFFFFFF, t), false);
+            }
         }
         Rect box = searchBox();
         Animation focus = anim("search", "focus", 0f, HOVER_SPEED);
         focus.setTarget(search.isFocused() ? 1f : 0f);
         float f = focus.update();
-        if (f > 0.01f) RenderUtil.roundedRect(context, box.x - 1, box.y - 1, box.w + 2, box.h + 2, 6, Theme.withAlpha(Theme.ACCENT, t * f));
-        RenderUtil.roundedRect(context, box.x, box.y, box.w, box.h, 5, Theme.withAlpha(Theme.lerp(0xFF16143A, 0xFF1B1846, f), t));
-        Icons.draw(context, Icons.SEARCH, box.x + 5, box.y + 5, Theme.withAlpha(Theme.lerp(Theme.MUTED, Theme.ACCENT_2, f), t));
+        if (sharp()) {
+            RenderUtil.panel(context, box.x, box.y, box.w, box.h, 5, Theme.withAlpha(CARD_BG, t), Theme.withAlpha(Theme.lerp(BORDER, Theme.ACCENT, f), t));
+        } else {
+            if (f > 0.01f) RenderUtil.roundedRect(context, box.x - 1, box.y - 1, box.w + 2, box.h + 2, 6, Theme.withAlpha(Theme.ACCENT, t * f));
+            RenderUtil.roundedRect(context, box.x, box.y, box.w, box.h, 5, Theme.withAlpha(Theme.lerp(0xFF16143A, 0xFF1B1846, f), t));
+        }
+        Icons.draw(context, Icons.SEARCH, box.x + 5, box.y + 5, Theme.withAlpha(Theme.lerp(Theme.MUTED, Theme.ACCENT, f), t));
         if (Theme.visible(t)) search.render(context, mouseX, mouseY, delta);
     }
 
@@ -357,7 +385,7 @@ public class ModMenuScreen extends AstroScreen {
         context.disableScissor();
 
         // soften the clipped edges while there is more to scroll to
-        int edge = 0x000D0B22;
+        int edge = Theme.PANEL_DEEP & 0x00FFFFFF;
         int solid = Theme.withAlpha(0xFF000000 | edge, t);
         if (scroll.get() > 1f) context.fillGradient(area.x - 2, area.y - 1, area.x + area.w + 2, area.y + 9, solid, edge);
         if (scroll.get() < max - 1f) context.fillGradient(area.x - 2, area.y + area.h - 10, area.x + area.w + 2, area.y + area.h, edge, solid);
@@ -365,7 +393,7 @@ public class ModMenuScreen extends AstroScreen {
         if (max > 0) {
             int thumbH = Math.max(16, Math.round(area.h * area.h / (area.h + max)));
             float thumbY = area.y + (area.h - thumbH) * (scroll.get() / max);
-            RenderUtil.roundedRect(context, area.x + area.w + 4, area.y, 2, area.h, 1, Theme.withAlpha(0x14FFFFFF, t));
+            RenderUtil.roundedRect(context, area.x + area.w + 4, area.y, 2, area.h, 1, Theme.withAlpha(BORDER, t));
             RenderUtil.roundedRect(context, area.x + area.w + 4, thumbY, 2, thumbH, 1, Theme.withAlpha(Theme.ACCENT, t));
         }
     }
@@ -392,19 +420,24 @@ public class ModMenuScreen extends AstroScreen {
         }
 
         // border: accent while enabled, brighter on hover, cyan for the Enter target
-        int border = Theme.lerp(BORDER, Theme.withAlpha(Theme.ACCENT, 0.75f), e);
-        border = Theme.lerp(border, Theme.ACCENT_2, target ? 1f : h * 0.45f);
-        RenderUtil.roundedRect(context, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 8, Theme.withAlpha(border, t));
-        RenderUtil.roundedRect(context, r.x, r.y, r.w, r.h, 7, Theme.withAlpha(Theme.lerp(CARD_BG, CARD_HOVER, h), t));
+        int border = Theme.lerp(BORDER, sharp() ? Theme.ACCENT : Theme.withAlpha(Theme.ACCENT, 0.75f), e);
+        border = Theme.lerp(border, sharp() ? Theme.TEXT : Theme.ACCENT_2, target ? 1f : h * 0.45f);
+        if (sharp()) {
+            RenderUtil.panel(context, r.x, r.y, r.w, r.h, 7, Theme.withAlpha(Theme.lerp(CARD_BG, CARD_HOVER, h), t), Theme.withAlpha(border, t));
+        } else {
+            RenderUtil.roundedRect(context, r.x - 1, r.y - 1, r.w + 2, r.h + 2, 8, Theme.withAlpha(border, t));
+            RenderUtil.roundedRect(context, r.x, r.y, r.w, r.h, 7, Theme.withAlpha(Theme.lerp(CARD_BG, CARD_HOVER, h), t));
+        }
 
         // icon tile
         int tile = 20;
         int tx = r.x + 7;
         int ty = r.y + 7;
         RenderUtil.roundedRect(context, tx, ty, tile, tile, 5, Theme.withAlpha(Theme.lerp(OFF_BAR, Theme.ACCENT, e), t));
-        RenderUtil.roundedRect(context, tx, ty, tile, tile / 2f, 5, Theme.withAlpha(0x14FFFFFF, t));
+        if (!sharp()) RenderUtil.roundedRect(context, tx, ty, tile, tile / 2f, 5, Theme.withAlpha(0x14FFFFFF, t));
         String[] icon = Icons.forModule(m);
-        if (icon != null) Icons.drawCentered(context, icon, tx, ty, tile, tile, Theme.withAlpha(Theme.lerp(0xFFB8B5E0, 0xFFFFFFFF, e), t));
+        int onTile = sharp() ? Theme.lerp(Theme.MUTED, Theme.ON_ACCENT, e) : Theme.lerp(0xFFB8B5E0, 0xFFFFFFFF, e);
+        if (icon != null) Icons.drawCentered(context, icon, tx, ty, tile, tile, Theme.withAlpha(onTile, t));
 
         drawSwitch(context, r.x + r.w - 27, r.y + 12, e, t);
 
@@ -416,18 +449,18 @@ public class ModMenuScreen extends AstroScreen {
             float gh = gearHover.update();
             if (gh > 0.01f) RenderUtil.roundedRect(context, gear.x, gear.y, gear.w, gear.h, 3, Theme.withAlpha(0x22FFFFFF, t * gh));
             Icons.drawCentered(context, Icons.GEAR, gear.x, gear.y, gear.w, gear.h,
-                    Theme.withAlpha(Theme.lerp(Theme.lerp(0xFF5A5788, Theme.MUTED, h), Theme.ACCENT_2, gh), t));
+                    Theme.withAlpha(Theme.lerp(Theme.lerp(Theme.BORDER_STRONG, Theme.MUTED, h), sharp() ? Theme.ACCENT : Theme.ACCENT_2, gh), t));
         }
 
         if (!Theme.visible(t)) return;
         if (icon == null) {
             String initial = m.getName().substring(0, 1).toUpperCase(Locale.ROOT);
-            context.drawText(textRenderer, initial, tx + (tile - textRenderer.getWidth(initial)) / 2 + 1, ty + 6, Theme.withAlpha(0xFFFFFFFF, t), false);
+            context.drawText(textRenderer, initial, tx + (tile - textRenderer.getWidth(initial)) / 2 + 1, ty + 6, Theme.withAlpha(onTile, t), false);
         }
         String name = trimmed(m.getName(), r.w - 33 - 30);
-        context.drawText(textRenderer, name, tx + tile + 6, r.y + 8, Theme.withAlpha(0xFFFFFFFF, t), false);
-        context.drawText(textRenderer, m.isEnabled() ? "Enabled" : "Disabled", tx + tile + 6, r.y + 18,
-                Theme.withAlpha(Theme.lerp(Theme.MUTED, Theme.ACCENT_2, e), t), false);
+        context.drawText(textRenderer, name, tx + tile + 6, r.y + 8, Theme.withAlpha(Theme.TEXT, t), false);
+        context.drawText(textRenderer, m.isEnabled() ? (sharp() ? "ON" : "Enabled") : (sharp() ? "OFF" : "Disabled"), tx + tile + 6, r.y + 18,
+                Theme.withAlpha(Theme.lerp(Theme.MUTED, sharp() ? Theme.ACCENT : Theme.ACCENT_2, e), t), false);
         String desc = trimmed(m.getDescription(), r.w - 14 - (hasSettings ? 16 : 0));
         context.drawText(textRenderer, desc, r.x + 7, r.y + r.h - 14, Theme.withAlpha(Theme.MUTED, t), false);
     }
@@ -440,6 +473,13 @@ public class ModMenuScreen extends AstroScreen {
     private void drawSwitch(DrawContext context, int x, int y, float k, float t) {
         int sw = 20;
         int sh = 10;
+        if (sharp()) {
+            // Orbit: square track with a hairline border and a square knob
+            RenderUtil.panel(context, x, y, sw, sh, 0, Theme.withAlpha(Theme.lerp(Theme.PANEL_DEEP, Theme.withAlpha(Theme.ACCENT, 0.14f), k), t),
+                    Theme.withAlpha(Theme.lerp(BORDER, Theme.ACCENT, k), t));
+            RenderUtil.roundedRect(context, x + 2 + (sw - sh) * k, y + 2, sh - 4, sh - 4, 0, Theme.withAlpha(Theme.lerp(Theme.BORDER_STRONG, Theme.ACCENT, k), t));
+            return;
+        }
         RenderUtil.roundedRect(context, x, y, sw, sh, sh / 2f, Theme.withAlpha(Theme.lerp(OFF_BAR, Theme.ACCENT, k), t));
         RenderUtil.circle(context, x + sh / 2f + (sw - sh) * k, y + sh / 2f, sh / 2f - 1.5f,
                 Theme.withAlpha(Theme.lerp(0xFFA9A6D4, 0xFFFFFFFF, k), t));
@@ -460,7 +500,7 @@ public class ModMenuScreen extends AstroScreen {
         else if (settingsFor == null) hint = "Click: toggle · Right-click: settings";
         else hint = "Right-click: previous option";
         hint = trimmed(hint, right - closeW - 12 - x);
-        context.drawText(textRenderer, hint, x, y, Theme.withAlpha(target != null ? Theme.ACCENT_2 : Theme.MUTED, t), false);
+        context.drawText(textRenderer, hint, x, y, Theme.withAlpha(target != null ? Theme.ACCENT : Theme.MUTED, t), false);
     }
 
     private int settingRowHeight(Setting<?> s) {
@@ -485,16 +525,18 @@ public class ModMenuScreen extends AstroScreen {
         Rect back = backButton();
         Animation backHover = anim("back", "hover", 0f, HOVER_SPEED);
         backHover.setTarget(back.contains(mouseX, mouseY) ? 1f : 0f);
-        RenderUtil.roundedRect(context, back.x, back.y, back.w, back.h, 5, Theme.withAlpha(Theme.lerp(CARD_HOVER, Theme.ACCENT, backHover.update()), t));
-        Icons.drawCentered(context, Icons.BACK, back.x, back.y, back.w, back.h, Theme.withAlpha(0xFFFFFFFF, t));
+        float bh = backHover.update();
+        RenderUtil.panel(context, back.x, back.y, back.w, back.h, 5, Theme.withAlpha(Theme.lerp(CARD_HOVER, Theme.ACCENT, bh), t),
+                Theme.withAlpha(Theme.lerp(BORDER, Theme.ACCENT, bh), t));
+        Icons.drawCentered(context, Icons.BACK, back.x, back.y, back.w, back.h, Theme.withAlpha(Theme.lerp(Theme.TEXT, Theme.ON_ACCENT, bh), t));
         String[] icon = Icons.forModule(settingsFor);
         int titleX = back.x + back.w + 8;
         if (icon != null) {
-            Icons.draw(context, icon, titleX, py + 13, Theme.withAlpha(Theme.ACCENT_2, t));
+            Icons.draw(context, icon, titleX, py + 13, Theme.withAlpha(sharp() ? Theme.ACCENT : Theme.ACCENT_2, t));
             titleX += Icons.SIZE + 6;
         }
         if (text) {
-            context.drawText(textRenderer, settingsFor.getName(), titleX, py + 14, Theme.withAlpha(0xFFFFFFFF, t), false);
+            context.drawText(textRenderer, settingsFor.getName(), titleX, py + 14, Theme.withAlpha(Theme.TEXT, t), false);
             context.drawText(textRenderer, trimmed(settingsFor.getDescription(), area.w), area.x, area.y + 2, Theme.withAlpha(Theme.MUTED, t), false);
         }
 
@@ -519,7 +561,7 @@ public class ModMenuScreen extends AstroScreen {
             int trackH = area.h - SETTINGS_TOP;
             int thumbH = Math.max(16, Math.round(trackH * trackH / (trackH + max)));
             float thumbY = trackY + (trackH - thumbH) * (settingsScroll.get() / max);
-            RenderUtil.roundedRect(context, area.x + area.w + 4, trackY, 2, trackH, 1, Theme.withAlpha(0x14FFFFFF, t));
+            RenderUtil.roundedRect(context, area.x + area.w + 4, trackY, 2, trackH, 1, Theme.withAlpha(BORDER, t));
             RenderUtil.roundedRect(context, area.x + area.w + 4, thumbY, 2, thumbH, 1, Theme.withAlpha(Theme.ACCENT, t));
         }
     }
@@ -539,23 +581,23 @@ public class ModMenuScreen extends AstroScreen {
 
     private void renderModeRow(DrawContext context, Rect row, ModeSetting mode, int mouseX, int mouseY, float t) {
         float hover = rowHover(mode, row, mouseX, mouseY);
-        RenderUtil.roundedRect(context, row.x, row.y, row.w, row.h, 5, Theme.withAlpha(Theme.lerp(CARD_BG, CARD_HOVER, hover), t));
+        RenderUtil.panel(context, row.x, row.y, row.w, row.h, 5, Theme.withAlpha(Theme.lerp(CARD_BG, CARD_HOVER, hover), t), Theme.withAlpha(Theme.lerp(BORDER, Theme.BORDER_STRONG, hover), t));
         int valueW = textRenderer.getWidth(mode.get());
         int rightArrowX = row.x + row.w - 8 - 3;
         int valueX = rightArrowX - 6 - valueW;
         int leftArrowX = valueX - 6 - 3;
         int arrowY = row.y + (row.h - 5) / 2;
-        int arrow = Theme.withAlpha(Theme.lerp(Theme.MUTED, Theme.ACCENT_2, hover), t);
+        int arrow = Theme.withAlpha(Theme.lerp(Theme.MUTED, sharp() ? Theme.ACCENT : Theme.ACCENT_2, hover), t);
         Icons.draw(context, Icons.LEFT, leftArrowX, arrowY, arrow);
         Icons.draw(context, Icons.RIGHT, rightArrowX, arrowY, arrow);
         if (!Theme.visible(t)) return;
         context.drawText(textRenderer, mode.getName(), row.x + 8, row.y + (row.h - 8) / 2, Theme.withAlpha(Theme.TEXT, t), false);
-        context.drawText(textRenderer, mode.get(), valueX, row.y + (row.h - 8) / 2, Theme.withAlpha(0xFFFFFFFF, t), false);
+        context.drawText(textRenderer, mode.get(), valueX, row.y + (row.h - 8) / 2, Theme.withAlpha(Theme.TEXT, t), false);
     }
 
     private void renderSwitchRow(DrawContext context, Rect row, String label, boolean value, Object key, int mouseX, int mouseY, float t) {
         float hover = rowHover(key, row, mouseX, mouseY);
-        RenderUtil.roundedRect(context, row.x, row.y, row.w, row.h, 5, Theme.withAlpha(Theme.lerp(CARD_BG, CARD_HOVER, hover), t));
+        RenderUtil.panel(context, row.x, row.y, row.w, row.h, 5, Theme.withAlpha(Theme.lerp(CARD_BG, CARD_HOVER, hover), t), Theme.withAlpha(Theme.lerp(BORDER, Theme.BORDER_STRONG, hover), t));
         Animation knob = anim(key, "knob", value ? 1f : 0f, TOGGLE_SPEED);
         knob.setTarget(value ? 1f : 0f);
         drawSwitch(context, row.x + row.w - 28, row.y + (row.h - 10) / 2, knob.update(), t);
@@ -564,17 +606,24 @@ public class ModMenuScreen extends AstroScreen {
 
     private void renderSliderRow(DrawContext context, Rect row, NumberSetting num, int mouseX, int mouseY, float t) {
         float hover = Math.max(rowHover(num, row, mouseX, mouseY), num == activeSlider ? 1f : 0f);
-        RenderUtil.roundedRect(context, row.x, row.y, row.w, row.h, 5, Theme.withAlpha(Theme.lerp(CARD_BG, CARD_HOVER, hover), t));
+        RenderUtil.panel(context, row.x, row.y, row.w, row.h, 5, Theme.withAlpha(Theme.lerp(CARD_BG, CARD_HOVER, hover), t), Theme.withAlpha(Theme.lerp(BORDER, Theme.BORDER_STRONG, hover), t));
         if (Theme.visible(t)) {
             context.drawText(textRenderer, num.getName(), row.x + 8, row.y + 6, Theme.withAlpha(Theme.TEXT, t), false);
             String value = num.format();
-            context.drawText(textRenderer, value, row.x + row.w - 8 - textRenderer.getWidth(value), row.y + 6, Theme.withAlpha(Theme.ACCENT_2, t), false);
+            context.drawText(textRenderer, value, row.x + row.w - 8 - textRenderer.getWidth(value), row.y + 6, Theme.withAlpha(sharp() ? Theme.ACCENT : Theme.ACCENT_2, t), false);
         }
         int trackX = row.x + 8;
         int trackW = row.w - 16;
         int trackY = row.y + 20;
         float frac = (float) num.getFraction();
         RenderUtil.roundedRect(context, trackX, trackY, trackW, 4, 2, Theme.withAlpha(OFF_BAR, t));
+        if (sharp()) {
+            // Orbit: solid accent fill and a square handle
+            RenderUtil.roundedRect(context, trackX, trackY, Math.round(trackW * frac), 4, 0, Theme.withAlpha(Theme.ACCENT, t));
+            float k = 3f + hover;
+            RenderUtil.roundedRect(context, trackX + trackW * frac - k, trackY + 2 - k, k * 2, k * 2, 0, Theme.withAlpha(Theme.TEXT, t));
+            return;
+        }
         RenderUtil.horizontalGradient(context, trackX + 1, trackY + 1, Math.round(trackX + trackW * frac), trackY + 3,
                 Theme.withAlpha(Theme.ACCENT, t), Theme.withAlpha(Theme.ACCENT_2, t));
         float knobR = 3.5f + hover;

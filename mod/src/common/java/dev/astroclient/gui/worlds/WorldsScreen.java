@@ -148,7 +148,7 @@ public class WorldsScreen extends AstroScreen {
         super.render(context, mouseX, mouseY, delta);
 
         // search box
-        RenderUtil.roundedRect(context, px + PAD, py + PAD, 162, 20, 5, search.isFocused() ? Ui.CARD_HOVER : Ui.CARD);
+        RenderUtil.roundedRect(context, px + PAD, py + PAD, 162, 20, Theme.R_MD, search.isFocused() ? Ui.CARD_HOVER : Ui.CARD);
         search.render(context, mouseX, mouseY, delta);
         Ui.divider(context, px + PAD, py + HEADER, px + pw - PAD);
 
@@ -181,8 +181,8 @@ public class WorldsScreen extends AstroScreen {
         hover.setTarget(hovered ? 1f : 0f);
         float hv = hover.update();
 
-        if (hv > 0.01f) RenderUtil.glow(context, x, y, w, CARD_H, 8, Theme.withAlpha(Theme.ACCENT, 0.35f * hv), 5);
-        RenderUtil.roundedRect(context, x, y, w, CARD_H, 8, Theme.lerp(Ui.CARD, Ui.CARD_HOVER, hv));
+        if (hv > 0.01f) RenderUtil.glow(context, x, y, w, CARD_H, Theme.R_LG, Theme.withAlpha(Theme.ACCENT, 0.35f * hv), 5);
+        RenderUtil.roundedRect(context, x, y, w, CARD_H, Theme.R_LG, Theme.lerp(Ui.CARD, Ui.CARD_HOVER, hv));
 
         int iconX = x + 6;
         int iconY = y + (CARD_H - ICON) / 2;

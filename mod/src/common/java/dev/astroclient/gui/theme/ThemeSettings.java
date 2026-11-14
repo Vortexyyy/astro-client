@@ -30,13 +30,26 @@ public final class ThemeSettings {
         }
     }
 
+    /** Visual effects level: glow, gradients, starfield density and parallax. */
+    public enum Quality {
+        OFF("Off"),
+        LOW("Low"),
+        HIGH("High");
+
+        public final String label;
+
+        Quality(String label) {
+            this.label = label;
+        }
+    }
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static ThemeSettings current = new ThemeSettings();
     private static Path file;
 
     // Saved fields (public for Gson)
     public boolean customMenus = true;
-    public Theme.Preset preset = Theme.Preset.NEBULA;
+    public Theme.Preset preset = Theme.Preset.ORBIT;
     public String menuBackground = STARFIELD;
     public String worldsBackground = SAME;
     public String serversBackground = SAME;
@@ -44,8 +57,14 @@ public final class ThemeSettings {
     public int backgroundDim = 35;
     /** 40..100 % opacity of menu panels */
     public int panelOpacity = 85;
-    public ButtonStyle buttonStyle = ButtonStyle.ROUNDED;
+    public ButtonStyle buttonStyle = ButtonStyle.SHARP;
+    /** Bumped when a redesign changes defaults; older files are migrated once in sanitized(). */
+    public int styleVersion;
     public boolean showPlayer = true;
+    /** Glow, gradient and starfield detail; lower it on weak hardware. */
+    public Quality effects = Quality.HIGH;
+    /** How often HUD text (FPS, coordinates, timers...) is rebuilt per second; 0 = every frame. */
+    public int hudRefreshHz = 30;
 
     public static ThemeSettings get() {
         return current;
@@ -65,6 +84,7 @@ public final class ThemeSettings {
     }
 
     public static void save() {
+        current.styleVersion = 2;
         Theme.apply(current.preset);
         if (file == null) return;
         try {
@@ -76,11 +96,19 @@ public final class ThemeSettings {
     }
 
     private ThemeSettings sanitized() {
-        if (preset == null) preset = Theme.Preset.NEBULA;
-        if (buttonStyle == null) buttonStyle = ButtonStyle.ROUNDED;
+        if (preset == null) preset = Theme.Preset.ORBIT;
+        if (buttonStyle == null) buttonStyle = ButtonStyle.SHARP;
+        if (styleVersion < 2) {
+            // 0.4 "Orbit" redesign: move everyone to the new look once; they can switch back in Customize
+            preset = Theme.Preset.ORBIT;
+            buttonStyle = ButtonStyle.SHARP;
+            styleVersion = 2;
+        }
         if (menuBackground == null) menuBackground = STARFIELD;
         if (worldsBackground == null) worldsBackground = SAME;
         if (serversBackground == null) serversBackground = SAME;
+        if (effects == null) effects = Quality.HIGH;
+        if (hudRefreshHz < 0 || hudRefreshHz > 240) hudRefreshHz = 30;
         backgroundDim = Math.max(0, Math.min(80, backgroundDim));
         panelOpacity = Math.max(40, Math.min(100, panelOpacity));
         return this;
@@ -95,10 +123,15 @@ public final class ThemeSettings {
         return panelOpacity / 100f;
     }
 
+    /** Corner style for every Astro surface: Sharp draws all shapes square (the Orbit look). */
+    public boolean sharp() {
+        return buttonStyle == ButtonStyle.SHARP;
+    }
+
     public float buttonRadius(int height) {
         return switch (buttonStyle) {
             case PILL -> height / 2f;
-            case SHARP -> 1.5f;
+            case SHARP -> 0f;
             case ROUNDED -> 6f;
         };
     }

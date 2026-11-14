@@ -1,5 +1,6 @@
 package dev.astroclient.module;
 
+import dev.astroclient.bench.Benchmark;
 import dev.astroclient.compat.Gfx;
 import dev.astroclient.gui.hud.HudEditorScreen;
 import dev.astroclient.module.impl.ArmorStatus;
@@ -26,6 +27,15 @@ public final class ModuleManager {
     private static final int HUD_GAP = 4;
 
     private final List<Module> modules = new ArrayList<>();
+    private final List<Placed> placed = new ArrayList<>();
+    private CpsCounter cps;
+    private Crosshair crosshair;
+    private static long frame;
+
+    /** Rendered-frame counter, so HUD modules compute their content once per frame. */
+    public static long frame() {
+        return frame;
+    }
 
     /** Where a HUD element is drawn this frame. */
     public record Placed(HudModule module, int x, int y, int w, int h) {}
@@ -43,6 +53,8 @@ public final class ModuleManager {
         register(new Keystrokes());
         register(new ArmorStatus());
         register(new PotionEffects());
+        cps = get(CpsCounter.class);
+        crosshair = get(Crosshair.class);
     }
 
     public void register(Module module) {
@@ -73,6 +85,12 @@ public final class ModuleManager {
      */
     public List<Placed> layout(int screenW, int screenH, boolean editing) {
         List<Placed> out = new ArrayList<>();
+        layoutInto(out, screenW, screenH, editing);
+        return out;
+    }
+
+    private void layoutInto(List<Placed> out, int screenW, int screenH, boolean editing) {
+        out.clear();
         int autoY = HUD_MARGIN;
         for (Module m : modules) {
             if (!(m instanceof HudModule hud) || !hud.isEnabled() || !hud.visible(editing)) continue;
@@ -85,20 +103,27 @@ public final class ModuleManager {
                 autoY += h + HUD_GAP;
             }
         }
-        return out;
     }
 
     public void renderHud(DrawContext context) {
+        Benchmark.frameStart();
+        try {
+            renderHudInner(context);
+        } finally {
+            Benchmark.hudEnd();
+        }
+    }
+
+    private void renderHudInner(DrawContext context) {
+        frame++;
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.options.hudHidden) return;
-        CpsCounter cps = get(CpsCounter.class);
         if (cps != null && cps.isEnabled()) cps.sample();
-        Crosshair crosshair = get(Crosshair.class);
         if (crosshair != null && crosshair.isEnabled()) crosshair.draw(context);
 
         // the HUD editor draws its own copy of the HUD
         if (client.getDebugHud().shouldShowDebugHud() || client.currentScreen instanceof HudEditorScreen) return;
-        List<Placed> placed = layout(context.getScaledWindowWidth(), context.getScaledWindowHeight(), false);
+        layoutInto(placed, context.getScaledWindowWidth(), context.getScaledWindowHeight(), false);
         // one batched draw for the text/shape elements instead of one per shape (big FPS win on 1.21.1)
         Gfx.batch(context, () -> {
             for (Placed p : placed) if (p.module().batchable()) p.module().render(context, p.x(), p.y(), false);

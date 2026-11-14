@@ -17,6 +17,10 @@ public final class ArmorStatus extends HudModule {
     private final BooleanSetting heldItem = add(new BooleanSetting("Held item", true));
     private final BooleanSetting background = add(new BooleanSetting("Background", true));
 
+    private ItemStack[] cachedStacks = new ItemStack[0];
+    private String[] labels = new String[0];
+    private int[] colours = new int[0];
+
     public ArmorStatus() {
         super("Armor", "Shows your armor and its durability");
     }
@@ -35,10 +39,32 @@ public final class ArmorStatus extends HudModule {
         return out;
     }
 
+    /** Equipment and durability labels, rebuilt at the HUD refresh rate instead of several times a frame. */
+    private ItemStack[] current(boolean editing) {
+        if (due(editing)) {
+            cachedStacks = stacks(editing);
+            labels = new String[cachedStacks.length];
+            colours = new int[cachedStacks.length];
+            for (int i = 0; i < cachedStacks.length; i++) {
+                ItemStack stack = cachedStacks[i];
+                if (stack == null || stack.isEmpty()) continue;
+                if (stack.isDamageable()) {
+                    float left = (stack.getMaxDamage() - stack.getDamage()) / (float) stack.getMaxDamage();
+                    colours[i] = left > 0.5f ? Theme.GOOD : left > 0.2f ? Theme.WARN : Theme.BAD;
+                    labels[i] = Math.round(left * 100) + "%";
+                } else if (stack.getCount() > 1) {
+                    colours[i] = Theme.TEXT;
+                    labels[i] = "x" + stack.getCount();
+                }
+            }
+        }
+        return cachedStacks;
+    }
+
     @Override
     public boolean visible(boolean editing) {
         if (editing) return true;
-        for (ItemStack s : stacks(false)) if (s != null && !s.isEmpty()) return true;
+        for (ItemStack s : current(false)) if (s != null && !s.isEmpty()) return true;
         return false;
     }
 
@@ -54,28 +80,22 @@ public final class ArmorStatus extends HudModule {
 
     @Override
     public int height(boolean editing) {
-        return stacks(editing).length * ROW - 2 + (background.get() ? 6 : 0);
+        return current(editing).length * ROW - 2 + (background.get() ? 6 : 0);
     }
 
     @Override
     public void render(DrawContext context, int x, int y, boolean editing) {
-        ItemStack[] stacks = stacks(editing);
+        ItemStack[] stacks = current(editing);
         int pad = background.get() ? 4 : 0;
         if (background.get()) {
-            RenderUtil.roundedRect(context, x, y, width(editing), height(editing), 5, Theme.HUD_BACKGROUND);
+            RenderUtil.panel(context, x, y, width(editing), height(editing), Theme.R_MD, Theme.HUD_BACKGROUND, Theme.BORDER);
         }
         for (int i = 0; i < stacks.length; i++) {
             ItemStack stack = stacks[i];
             if (stack == null || stack.isEmpty()) continue;
             int rowY = y + pad - 1 + i * ROW;
             context.drawItem(stack, x + pad, rowY);
-            if (stack.isDamageable()) {
-                float left = (stack.getMaxDamage() - stack.getDamage()) / (float) stack.getMaxDamage();
-                int colour = left > 0.5f ? 0xFF34D399 : left > 0.2f ? 0xFFFACC15 : 0xFFF43F5E;
-                context.drawText(mc.textRenderer, Math.round(left * 100) + "%", x + pad + 20, rowY + 4, colour, true);
-            } else if (stack.getCount() > 1) {
-                context.drawText(mc.textRenderer, "x" + stack.getCount(), x + pad + 20, rowY + 4, Theme.TEXT, true);
-            }
+            if (labels[i] != null) context.drawText(mc.textRenderer, labels[i], x + pad + 20, rowY + 4, colours[i], true);
         }
     }
 }

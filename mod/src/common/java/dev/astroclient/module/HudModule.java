@@ -12,6 +12,9 @@ import net.minecraft.util.math.MathHelper;
 public abstract class HudModule extends Module {
     private float fx = Float.NaN;
     private float fy = Float.NaN;
+    private long cachedFrame = -1;
+    private boolean cachedEditing;
+    private long nextRefreshMs;
 
     protected HudModule(String name, String description) {
         super(name, description, Category.HUD);
@@ -35,6 +38,24 @@ public abstract class HudModule extends Module {
 
     /** False for elements that draw items, which must not be inside a batched GUI draw on 1.21.1. */
     public boolean batchable() {
+        return true;
+    }
+
+    /**
+     * True when cached HUD content should be rebuilt: at most once per rendered frame, and no more than
+     * the "HUD refresh" setting allows per second. Width, height and render all read the same cache.
+     */
+    protected final boolean due(boolean editing) {
+        long frame = ModuleManager.frame();
+        // the HUD editor may run without a world (no HUD frames), so it only uses the time gate
+        if (!editing && frame == cachedFrame && editing == cachedEditing) return false;
+        long now = net.minecraft.util.Util.getMeasuringTimeMs();
+        int hz = dev.astroclient.gui.theme.ThemeSettings.get().hudRefreshHz;
+        boolean first = cachedFrame < 0 || editing != cachedEditing;
+        cachedFrame = frame;
+        if (!first && hz > 0 && now < nextRefreshMs) return false;
+        cachedEditing = editing;
+        nextRefreshMs = now + (hz > 0 ? 1000L / hz : 0);
         return true;
     }
 

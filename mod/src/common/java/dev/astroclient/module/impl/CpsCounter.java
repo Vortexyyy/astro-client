@@ -35,7 +35,12 @@ public final class CpsCounter extends TextHudModule {
     }
 
     @Override
+    protected String label() {
+        return "CPS";
+    }
+
+    @Override
     protected String text(boolean editing) {
-        return rightClick.get() ? left.size() + " | " + right.size() + " CPS" : left.size() + " CPS";
+        return rightClick.get() ? left.size() + " / " + right.size() : String.valueOf(left.size());
     }
 }

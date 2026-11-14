@@ -20,6 +20,8 @@ public class AstroButton extends AstroButtonBase {
     private int baseY;
     /** left-aligned label with an accent bar, for the main menu's side column */
     private boolean leftAligned;
+    /** the screen's main action: drawn filled with the accent (Orbit) */
+    private boolean primary;
 
     public AstroButton(int x, int y, int width, int height, net.minecraft.text.Text message, PressAction onPress) {
         super(x, y, width, height, message, onPress);
@@ -28,6 +30,11 @@ public class AstroButton extends AstroButtonBase {
 
     public AstroButton leftAligned() {
         this.leftAligned = true;
+        return this;
+    }
+
+    public AstroButton primary() {
+        this.primary = true;
         return this;
     }
 
@@ -52,6 +59,10 @@ public class AstroButton extends AstroButtonBase {
         float radius = ThemeSettings.get().buttonRadius(height);
         float panel = ThemeSettings.get().panelAlpha();
 
+        if (ThemeSettings.get().sharp()) {
+            renderOrbit(context, x, y, h, panel);
+            return;
+        }
         if (h > 0.01f) RenderUtil.glow(context, x, y, width, height, radius, Theme.withAlpha(Theme.ACCENT, 0.55f * h * alpha), 6);
         RenderUtil.roundedRect(context, x, y, width, height, radius,
                 Theme.withAlpha(Theme.lerp(Theme.PANEL, HOVER_BG, h), alpha * Math.max(panel, h)));
@@ -77,6 +88,28 @@ public class AstroButton extends AstroButtonBase {
             var font = MinecraftClient.getInstance().textRenderer;
             if (leftAligned) context.drawTextWithShadow(font, getMessage(), x + 14 + Math.round(3 * h), y + (height - 8) / 2, color);
             else context.drawCenteredTextWithShadow(font, getMessage(), x + width / 2, y + (height - 8) / 2, color);
+        }
+    }
+
+    /**
+     * Orbit button: square, hairline border that turns accent on hover, accent marker and chevron for the
+     * side column; the primary action is filled with the accent and uses dark text.
+     */
+    private void renderOrbit(DrawContext context, int x, int y, float h, float panel) {
+        boolean main = primary && active;
+        int fill = main ? Theme.lerp(Theme.ACCENT, Theme.ACCENT_2, h * 0.5f) : Theme.lerp(Theme.CARD, Theme.CARD_HOVER, h);
+        int border = main ? Theme.ACCENT : Theme.lerp(Theme.BORDER, Theme.ACCENT, h);
+        RenderUtil.panel(context, x, y, width, height, 0, Theme.withAlpha(fill, alpha * (main ? 1f : Math.max(panel, h))), Theme.withAlpha(border, alpha));
+        int ink = main ? Theme.ON_ACCENT : active ? Theme.lerp(Theme.TEXT, 0xFFFFFFFF, h) : Theme.MUTED;
+        var font = MinecraftClient.getInstance().textRenderer;
+        if (leftAligned) {
+            if (!main) RenderUtil.roundedRect(context, x + 7, y + height / 2f - 1.5f, 3, 3, 0, Theme.withAlpha(Theme.lerp(Theme.BORDER_STRONG, Theme.ACCENT, h), alpha));
+            Icons.draw(context, Icons.RIGHT, x + width - 12 + Math.round(2 * h), y + (height - 5) / 2,
+                    Theme.withAlpha(main ? Theme.ON_ACCENT : Theme.lerp(Theme.BORDER_STRONG, Theme.ACCENT, h), alpha));
+            if (Theme.visible(alpha)) context.drawText(font, getMessage(), x + (main ? 9 : 15) + Math.round(2 * h), y + (height - 8) / 2, Theme.withAlpha(ink, alpha), false);
+        } else if (Theme.visible(alpha)) {
+            int tw = font.getWidth(getMessage());
+            context.drawText(font, getMessage(), x + (width - tw) / 2, y + (height - 8) / 2, Theme.withAlpha(ink, alpha), false);
         }
     }
 }

@@ -305,6 +305,26 @@ export default function Profiles({ app }: { app: AppState }) {
                     <button className="btn-ghost small" disabled={Boolean(busy)} onClick={() => picker.current?.click()}>
                       <Icon name="plus" size={13} /> Add .jar files
                     </button>
+                    {!profile.mods.some((m) => /sodium/i.test(m.title)) && (
+                      <button
+                        className="btn-ghost small"
+                        disabled={Boolean(busy)}
+                        title="Sodium, Lithium, FerriteCore, ImmediatelyFast and EntityCulling from Modrinth"
+                        onClick={() =>
+                          run('Adding performance mods', async () => {
+                            const result = await astro.installBundle(profile.id, 'performance');
+                            await app.refresh();
+                            app.notify(
+                              result.skipped.length
+                                ? `Added ${result.installed.length} performance mods; ${result.skipped.length} have no build for ${profile.mcVersion}`
+                                : `Added ${result.installed.length} performance mods`
+                            );
+                          })
+                        }
+                      >
+                        <Icon name="bolt" size={13} /> {busy === 'Adding performance mods' ? 'Adding…' : 'Performance mods'}
+                      </button>
+                    )}
                   <button
                     className="btn-ghost small"
                     disabled={Boolean(busy) || profile.mods.length === 0}

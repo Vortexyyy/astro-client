@@ -10,6 +10,11 @@ public final class PingDisplay extends TextHudModule {
     }
 
     @Override
+    protected String label() {
+        return "PING";
+    }
+
+    @Override
     protected String text(boolean editing) {
         ClientPlayNetworkHandler handler = mc.getNetworkHandler();
         PlayerListEntry entry = handler == null || mc.player == null ? null : handler.getPlayerListEntry(mc.player.getUuid());

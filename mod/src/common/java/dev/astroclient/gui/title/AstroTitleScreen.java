@@ -86,7 +86,7 @@ public class AstroTitleScreen extends AstroScreen {
         logoY = Math.max(8, (height - FOOTER - block) / 2);
         int y = logoY + logoHeight() + 16;
 
-        add(x, y, "Singleplayer", () -> client.setScreen(new WorldsScreen(this)));
+        add(x, y, "Singleplayer", () -> client.setScreen(new WorldsScreen(this))).primary();
         AstroButton multiplayer = add(x, y += BUTTON_H + GAP, "Multiplayer", () -> client.setScreen(client.options.skipMultiplayerWarning
                 ? new ServersScreen(this) : new MultiplayerWarningScreen(this)));
         multiplayer.active = client.isMultiplayerEnabled();
@@ -132,8 +132,8 @@ public class AstroTitleScreen extends AstroScreen {
             int cx = model.getX() + modelW / 2;
             int plateY = model.getY() + modelH + 6;
             int plateW = Math.max(90, textRenderer.getWidth(name) + 24);
-            RenderUtil.roundedRect(context, cx - plateW / 2f, plateY, plateW, PLATE_H, 8, Theme.withAlpha(Theme.PANEL, 0.85f * t));
-            context.drawCenteredTextWithShadow(textRenderer, name, cx, plateY + 6, Theme.withAlpha(0xFFFFFFFF, t));
+            RenderUtil.panel(context, cx - plateW / 2f, plateY, plateW, PLATE_H, Theme.R_LG, Theme.withAlpha(Theme.PANEL, 0.85f * t), Theme.withAlpha(Theme.BORDER, t));
+            context.drawCenteredTextWithShadow(textRenderer, name, cx, plateY + 6, Theme.withAlpha(Theme.TEXT, t));
             context.drawCenteredTextWithShadow(textRenderer, "Drag to rotate", cx, plateY + 18, Theme.withAlpha(Theme.MUTED, t));
         }
 
@@ -154,21 +154,35 @@ public class AstroTitleScreen extends AstroScreen {
         int scale = logoScale;
         int logoY = this.logoY - Math.round((1f - t) * 10f);
 
-        float pulse = 0.5f + 0.5f * MathHelper.sin((Util.getMeasuringTimeMs() % 100_000L) / 600f);
-        int logoW = PixelFont.width("ASTRO", scale, scale * 2);
-        RenderUtil.glow(context, x, logoY, logoW, PixelFont.height(scale), 8,
-                Theme.withAlpha(Theme.ACCENT, (0.25f + 0.15f * pulse) * t), 18);
-        PixelFont.draw(context, "ASTRO", x, logoY, scale, scale * 2, Theme.withAlpha(0xFFFFFFFF, t), Theme.withAlpha(Theme.ACCENT, t));
         int subScale = Math.max(1, scale / 3);
-        PixelFont.draw(context, "CLIENT", x + 2, logoY + PixelFont.height(scale) + 6, subScale, subScale * 4,
-                Theme.withAlpha(Theme.ACCENT_2, t), Theme.withAlpha(Theme.ACCENT_2, t));
+        if (ThemeSettings.get().sharp()) {
+            // Orbit: flat white wordmark, accent rule and a muted caption under it
+            PixelFont.draw(context, "ASTRO", x, logoY, scale, scale * 2, Theme.withAlpha(Theme.TEXT, t), Theme.withAlpha(Theme.TEXT, t));
+            int ruleY = logoY + PixelFont.height(scale) + 6;
+            RenderUtil.roundedRect(context, x + 1, ruleY + PixelFont.height(subScale) / 2f - 0.5f, 12, 1.5f, 0, Theme.withAlpha(Theme.ACCENT, t));
+            PixelFont.draw(context, "CLIENT", x + 18, ruleY, subScale, subScale * 3, Theme.withAlpha(Theme.MUTED, t), Theme.withAlpha(Theme.MUTED, t));
+        } else {
+            float pulse = 0.5f + 0.5f * MathHelper.sin((Util.getMeasuringTimeMs() % 100_000L) / 600f);
+            int logoW = PixelFont.width("ASTRO", scale, scale * 2);
+            RenderUtil.glow(context, x, logoY, logoW, PixelFont.height(scale), 8,
+                    Theme.withAlpha(Theme.ACCENT, (0.25f + 0.15f * pulse) * t), 18);
+            PixelFont.draw(context, "ASTRO", x, logoY, scale, scale * 2, Theme.withAlpha(0xFFFFFFFF, t), Theme.withAlpha(Theme.ACCENT, t));
+            PixelFont.draw(context, "CLIENT", x + 2, logoY + PixelFont.height(scale) + 6, subScale, subScale * 4,
+                    Theme.withAlpha(Theme.ACCENT_2, t), Theme.withAlpha(Theme.ACCENT_2, t));
+        }
 
         if (model != null) {
             // soft glowing platform under the player
             int cx = model.getX() + modelW / 2;
             int footY = model.getY() + modelH - 6;
-            RenderUtil.glow(context, cx - 45, footY - 4, 90, 8, 4, Theme.withAlpha(Theme.ACCENT_2, 0.5f * t), 10);
-            RenderUtil.roundedRect(context, cx - 45, footY - 4, 90, 8, 4, Theme.withAlpha(Theme.ACCENT, 0.6f * t));
+            if (ThemeSettings.get().sharp()) {
+                // Orbit: a hairline horizon with an accent marker under the player
+                RenderUtil.roundedRect(context, cx - 60, footY + 2, 120, 1, 0, Theme.withAlpha(Theme.BORDER_STRONG, t));
+                RenderUtil.roundedRect(context, cx - 3, footY, 6, 5, 0, Theme.withAlpha(Theme.ACCENT, t));
+            } else {
+                RenderUtil.glow(context, cx - 45, footY - 4, 90, 8, 4, Theme.withAlpha(Theme.ACCENT_2, 0.5f * t), 10);
+                RenderUtil.roundedRect(context, cx - 45, footY - 4, 90, 8, 4, Theme.withAlpha(Theme.ACCENT, 0.6f * t));
+            }
         }
     }
 

@@ -32,6 +32,15 @@ public final class Gfx {
         c.draw(drawing);
     }
 
+    /** 1.21.1 draws textured quads immediately (one draw call each), so shapes stay batched fills. */
+    public static boolean roundedRect(DrawContext c, int x, int y, int w, int h, int r, int color) {
+        return false;
+    }
+
+    public static boolean glow(DrawContext c, int x, int y, int w, int h, int r, int pad, int rings, int color) {
+        return false;
+    }
+
     public static float guiScale() {
         return (float) MinecraftClient.getInstance().getWindow().getScaleFactor();
     }

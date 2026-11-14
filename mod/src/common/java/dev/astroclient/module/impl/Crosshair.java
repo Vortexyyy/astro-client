@@ -29,9 +29,9 @@ public final class Crosshair extends Module {
         return switch (color.get()) {
             case "Accent" -> Theme.ACCENT;
             case "Cyan" -> Theme.ACCENT_2;
-            case "Green" -> 0xFF34D399;
-            case "Red" -> 0xFFF43F5E;
-            case "Yellow" -> 0xFFFACC15;
+            case "Green" -> Theme.GOOD;
+            case "Red" -> Theme.BAD;
+            case "Yellow" -> Theme.WARN;
             default -> 0xFFFFFFFF;
         };
     }

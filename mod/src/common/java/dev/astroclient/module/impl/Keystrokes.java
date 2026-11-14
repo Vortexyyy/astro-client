@@ -15,7 +15,6 @@ public final class Keystrokes extends HudModule {
     private static final int KEY = 18;
     private static final int GAP = 2;
     private static final int SPACE_H = 8;
-    private static final int PRESSED = 0xE08B5CF6;
 
     private final Map<KeyBinding, Animation> fades = new HashMap<>();
 
@@ -51,13 +50,14 @@ public final class Keystrokes extends HudModule {
         Animation fade = fades.computeIfAbsent(binding, b -> new Animation(0f, 20f));
         fade.setTarget(binding.isPressed() ? 1f : 0f);
         float p = fade.update();
-        RenderUtil.roundedRect(context, x, y, w, h, 4, Theme.lerp(Theme.HUD_BACKGROUND, PRESSED, p));
+        // Orbit: graphite key with a hairline border; held keys fill with the accent
+        RenderUtil.panel(context, x, y, w, h, Theme.R_MD, Theme.lerp(Theme.HUD_BACKGROUND, Theme.ACCENT, p), Theme.lerp(Theme.BORDER, Theme.ACCENT, p));
         if (label.isEmpty()) {
-            RenderUtil.roundedRect(context, x + w / 2f - 8, y + h / 2f - 0.5f, 16, 1, 0.5f, Theme.lerp(Theme.MUTED, 0xFFFFFFFF, p));
+            RenderUtil.roundedRect(context, x + w / 2f - 8, y + h / 2f - 0.5f, 16, 1, 0.5f, Theme.lerp(Theme.MUTED, Theme.ON_ACCENT, p));
             return;
         }
         int textW = mc.textRenderer.getWidth(label);
         context.drawText(mc.textRenderer, label, x + (w - textW) / 2, y + (h - 8) / 2 + 1,
-                Theme.lerp(Theme.TEXT, 0xFFFFFFFF, p), false);
+                Theme.lerp(Theme.TEXT, Theme.ON_ACCENT, p), false);
     }
 }

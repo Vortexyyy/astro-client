@@ -267,8 +267,8 @@ public class ServersScreen extends AstroScreen {
         hover.setTarget(hovered ? 1f : 0f);
         float hv = hover.update();
 
-        if (hv > 0.01f) RenderUtil.glow(context, x, y, w, CARD_H, 8, Theme.withAlpha(Theme.ACCENT, 0.35f * hv), 5);
-        RenderUtil.roundedRect(context, x, y, w, CARD_H, 8, Theme.lerp(Ui.CARD, Ui.CARD_HOVER, hv));
+        if (hv > 0.01f) RenderUtil.glow(context, x, y, w, CARD_H, Theme.R_LG, Theme.withAlpha(Theme.ACCENT, 0.35f * hv), 5);
+        RenderUtil.roundedRect(context, x, y, w, CARD_H, Theme.R_LG, Theme.lerp(Ui.CARD, Ui.CARD_HOVER, hv));
 
         int iconX = x + 7;
         int iconY = y + (CARD_H - ICON) / 2;
@@ -299,16 +299,16 @@ public class ServersScreen extends AstroScreen {
         ServerInfo.Status status = info.getStatus();
         if (status == ServerInfo.Status.SUCCESSFUL) {
             ping = info.ping + " ms";
-            pingColor = info.ping < 150 ? 0xFF34D399 : info.ping < 300 ? 0xFFFBBF24 : 0xFFF87171;
+            pingColor = info.ping < 150 ? Theme.GOOD : info.ping < 300 ? Theme.WARN : Theme.BAD;
         } else if (status == ServerInfo.Status.PINGING || status == ServerInfo.Status.INITIAL) {
             ping = "…";
             pingColor = Theme.MUTED;
         } else if (status == ServerInfo.Status.INCOMPATIBLE) {
             ping = "Incompatible";
-            pingColor = 0xFFFBBF24;
+            pingColor = Theme.WARN;
         } else {
             ping = "Offline";
-            pingColor = 0xFFF87171;
+            pingColor = Theme.BAD;
         }
         context.drawText(textRenderer, ping, x + w - 10 - textRenderer.getWidth(ping), y + 7, pingColor, false);
         if (info.playerCountLabel != null && status == ServerInfo.Status.SUCCESSFUL) {
@@ -320,7 +320,7 @@ public class ServersScreen extends AstroScreen {
             Rect edit = editRect(x, y, w);
             Rect del = deleteRect(x, y, w);
             int editColor = edit.contains(mouseX, mouseY) ? Theme.ACCENT_2 : Theme.MUTED;
-            int delColor = del.contains(mouseX, mouseY) ? 0xFFF87171 : Theme.MUTED;
+            int delColor = del.contains(mouseX, mouseY) ? Theme.BAD : Theme.MUTED;
             context.drawText(textRenderer, "Edit", edit.x, edit.y + 2, Theme.withAlpha(editColor, hv), false);
             context.drawText(textRenderer, "Delete", del.x, del.y + 2, Theme.withAlpha(delColor, hv), false);
         }

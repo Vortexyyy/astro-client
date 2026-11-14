@@ -1,5 +1,6 @@
 package dev.astroclient.gui.render;
 
+import dev.astroclient.gui.theme.ThemeSettings;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
@@ -49,19 +50,23 @@ public final class Starfield {
 
     public void render(DrawContext context, int width, int height, float alpha) {
         float seconds = (Util.getMeasuringTimeMs() % 1_000_000L) / 1000f;
-        for (int i = 0; i < x.length; i++) {
+        // effects quality: Low draws every second star without parallax, Off every fourth with no shooting stars
+        ThemeSettings.Quality q = ThemeSettings.get().effects;
+        int step = q == ThemeSettings.Quality.HIGH ? 1 : q == ThemeSettings.Quality.LOW ? 2 : 4;
+        float parallax = q == ThemeSettings.Quality.HIGH ? PARALLAX : 0f;
+        for (int i = 0; i < x.length; i += step) {
             float d = depth[i];
             float sx = (x[i] - seconds * 0.004f * d) % 1f;
             if (sx < 0) sx += 1f;
-            int px = (int) (sx * width - (pointerX - 0.5f) * PARALLAX * d);
-            int py = (int) (y[i] * height - (pointerY - 0.5f) * PARALLAX * d);
+            int px = (int) (sx * width - (pointerX - 0.5f) * parallax * d);
+            int py = (int) (y[i] * height - (pointerY - 0.5f) * parallax * d);
             float twinkle = 0.6f + 0.4f * MathHelper.sin(seconds * 1.6f + phase[i]);
             int a = Math.round(255 * alpha * d * twinkle);
             if (a <= 0) continue;
             int size = d > 0.85f ? 2 : 1;
             context.fill(px, py, px + size, py + size, (a << 24) | 0xDDE4FF);
         }
-        shootingStar(context, width, height, alpha, seconds);
+        if (q != ThemeSettings.Quality.OFF) shootingStar(context, width, height, alpha, seconds);
     }
 
     /** One streak every few seconds, derived from the clock so it needs no state between frames. */
