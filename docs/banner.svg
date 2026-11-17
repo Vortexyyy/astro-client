@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" width="1280" height="400" role="img" aria-label="Astro Client: a Minecraft launcher and client">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b0a24"/>
+      <stop offset="1" stop-color="#03040c"/>
+    </linearGradient>
+    <radialGradient id="nebula1" cx="0.72" cy="0.25" r="0.55">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula2" cx="0.12" cy="0.95" r="0.5">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="planet" cx="0.32" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="0.45" stop-color="#6d28d9"/>
+      <stop offset="1" stop-color="#1e1048"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.6" stop-color="#8b5cf6" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#d8ccff"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#22d3ee" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="streak" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .tw { animation: tw 3.2s ease-in-out infinite; }
+      .tw.b { animation-delay: 1.1s; }
+      .tw.c { animation-delay: 2.2s; }
+      @keyframes tw { 50% { opacity: 0.25; } }
+      .shoot { animation: shoot 6s ease-in infinite; }
+      @keyframes shoot {
+        0%, 70% { transform: translate(0, 0); opacity: 0; }
+        72% { opacity: 1; }
+        88%, 100% { transform: translate(-360px, 150px); opacity: 0; }
+      }
+      @media (prefers-reduced-motion: reduce) { .tw, .shoot { animation: none; } }
+    </style>
+  </defs>
+
+  <rect width="1280" height="400" rx="24" fill="url(#bg)"/>
+  <rect width="1280" height="400" rx="24" fill="url(#nebula1)"/>
+  <rect width="1280" height="400" rx="24" fill="url(#nebula2)"/>
+
+  <g fill="#e8eaff">
+    <circle cx="64" cy="48" r="1.4" class="tw"/>
+    <circle cx="140" cy="132" r="1"/>
+    <circle cx="212" cy="64" r="1.6" class="tw b"/>
+    <circle cx="298" cy="300" r="1.1"/>
+    <circle cx="352" cy="96" r="1.2" class="tw c"/>
+    <circle cx="420" cy="350" r="1.5" class="tw"/>
+    <circle cx="486" cy="40" r="1"/>
+    <circle cx="560" cy="330" r="1.3" class="tw b"/>
+    <circle cx="612" cy="70" r="1"/>
+    <circle cx="706" cy="356" r="1.2"/>
+    <circle cx="760" cy="44" r="1.6" class="tw c"/>
+    <circle cx="824" cy="370" r="1"/>
+    <circle cx="1196" cy="60" r="1.4" class="tw"/>
+    <circle cx="1240" cy="190" r="1"/>
+    <circle cx="1132" cy="352" r="1.2" class="tw b"/>
+    <circle cx="96" cy="250" r="1.2"/>
+    <circle cx="36" cy="360" r="1.5" class="tw c"/>
+    <circle cx="250" cy="196" r="0.9"/>
+    <circle cx="660" cy="210" r="0.9"/>
+    <circle cx="1060" cy="40" r="1"/>
+  </g>
+  <g fill="#22d3ee"><circle cx="180" cy="320" r="1.4" class="tw b"/><circle cx="1010" cy="300" r="1.3" class="tw"/></g>
+  <g fill="#a78bfa"><circle cx="530" cy="120" r="1.4" class="tw c"/><circle cx="1220" cy="300" r="1.4" class="tw b"/></g>
+
+  <g class="shoot"><line x1="1010" y1="60" x2="1130" y2="10" stroke="url(#streak)" stroke-width="2.2" stroke-linecap="round"/></g>
+
+  <circle cx="1060" cy="250" r="190" fill="url(#halo)"/>
+  <ellipse cx="1060" cy="250" rx="230" ry="44" transform="rotate(-14 1060 250)" fill="none" stroke="url(#ring)" stroke-width="3" stroke-opacity="0.45"/>
+  <circle cx="1060" cy="250" r="118" fill="url(#planet)"/>
+  <path d="M 838 300 A 230 44 -14 0 0 1283 190" fill="none" stroke="url(#ring)" stroke-width="3.5"/>
+  <circle cx="1196" cy="214" r="5" fill="#e0fbff" filter="url(#glow)"/>
+
+  <g filter="url(#glow)">
+    <text x="96" y="214" font-family="Orbitron, 'Segoe UI', Verdana, Arial, sans-serif" font-weight="900" font-size="132" letter-spacing="18" fill="url(#word)">ASTRO</text>
+  </g>
+  <rect x="100" y="244" width="56" height="3" rx="1.5" fill="#22d3ee"/>
+  <text x="170" y="251" font-family="'Segoe UI', Verdana, Arial, sans-serif" font-weight="700" font-size="22" letter-spacing="7" fill="#22d3ee">CLIENT</text>
+  <text x="100" y="300" font-family="'Segoe UI', Verdana, Arial, sans-serif" font-size="22" fill="#c4c0ec">A fast Minecraft launcher and Fabric client, wrapped in a nebula.</text>
+</svg>

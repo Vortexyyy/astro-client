@@ -1,234 +1,129 @@
-# Astro Client
+<p align="center">
+  <img src="docs/banner.svg" alt="Astro Client" width="100%">
+</p>
 
-A Minecraft client in two parts:
+<p align="center">
+  <a href="https://github.com/Vortexyyy/astro-releases/releases/latest"><img src="https://img.shields.io/github/v/release/Vortexyyy/astro-releases?style=for-the-badge&label=download&color=8b5cf6&labelColor=0b0a24" alt="Download"></a>
+  <img src="https://img.shields.io/badge/minecraft-1.21.1%20%E2%80%A2%201.21.10%20%E2%80%A2%201.21.11-22d3ee?style=for-the-badge&labelColor=0b0a24" alt="Minecraft versions">
+  <img src="https://img.shields.io/badge/fabric-client-a78bfa?style=for-the-badge&labelColor=0b0a24" alt="Fabric">
+  <img src="https://img.shields.io/badge/windows-launcher-6d28d9?style=for-the-badge&labelColor=0b0a24" alt="Windows">
+  <a href="https://github.com/Vortexyyy/astro-client/stargazers"><img src="https://img.shields.io/github/stars/Vortexyyy/astro-client?style=for-the-badge&color=facc15&labelColor=0b0a24&logo=github" alt="Stars"></a>
+</p>
 
-| Part | Stack | Folder |
-| --- | --- | --- |
-| Desktop launcher | Electron 45 + React 19 + TypeScript (electron-vite) | [`launcher/`](launcher) |
-| In-game client mod | Fabric Loader + Fabric API, Minecraft **1.21.11, 1.21.10, 1.21.1**, Java 21 | [`mod/`](mod) |
+<h3 align="center">A fast, good-looking Minecraft launcher and Fabric client: one click to play, zero clutter.</h3>
+
+<p align="center">
+  <b>⭐ If Astro looks cool to you, <a href="https://github.com/Vortexyyy/astro-client/stargazers">drop a star</a>. It's free, takes one second, and it's what keeps this project going. ⭐</b>
+</p>
 
 ---
 
-## 1. What it does
+## ✨ Highlights
 
-**Launcher**
+<table>
+<tr>
+<td width="50%" valign="top">
 
-- **Backup & sync** (Settings), no account or server: pick a folder inside OneDrive, Google
-  Drive or Dropbox and Astro keeps `astro-backup.json` there, updated automatically after every
-  change. On another PC, pick the same folder and *Restore* rebuilds the profiles and
-  re-downloads their mods. Several PCs can share the folder; profiles are merged, and deletions
-  carry over. Microsoft tokens, passwords, API keys and worlds are never written to it.
-  To give a profile to a friend, use Profiles → *Export* and send them the `.astropack`.
-- **Astro Client installed for you**: launching a Fabric/Quilt profile on a supported version
-  copies the matching Astro mod in, plus Fabric API and the performance mods (Sodium, Lithium,
-  FerriteCore, ImmediatelyFast, Entity Culling). New profiles start with VSync off and FPS
-  uncapped. Turn this off in Settings.
-- **Every Minecraft version** in the version picker (releases, optional snapshots); versions with
-  an Astro build are listed first and marked ★.
-- **Microsoft accounts.** "Add Microsoft account" opens Microsoft's own sign-in page; Astro only
-  stores the resulting refresh token (encrypted with the OS keychain). Several accounts can be
-  added and switched from the title bar; the active account's skin is shown as its avatar.
-  Every launch refreshes the session and passes a real Minecraft access token to the game, so
-  online-mode servers work. Packaged builds require an account; development builds can also
-  launch offline for testing.
-- **Bundled Java.** Each Minecraft version declares the Java runtime it needs; Astro downloads
-  that exact runtime from Mojang's runtime manifest (the same one the official launcher uses),
-  SHA-1 checks all of its files, and caches it under `<userData>/runtimes`. A custom Java path
-  can be set instead.
-- **Launch screen** with a large Launch button, profile picker, live progress, and a
-  *Quick join* row of saved servers that launch straight into multiplayer.
-- **Console**: the game's and launcher's log, kept in the main process so it survives page
-  changes. Filter by text and level (Info/Warn/Error/Launcher/Debug), copy, clear, open the
-  logs folder, force-stop the game.
-- **Import from other launchers** (Profiles → *Import from another launcher*). Astro finds
-  installs automatically and shows every instance with its version, loader, mod and world count:
+### 🚀 The launcher
+- **One-click play**: pick a profile, hit *Launch*.
+- **Mods built in**: browse and install from **Modrinth** and **CurseForge**, or drag `.jar` files straight in.
+- **Performance mods in one click**: Sodium, Lithium, FerriteCore, ImmediatelyFast and Entity Culling.
+- **Import** profiles from Lunar, Modrinth App, Prism and CurseForge.
+- **Microsoft sign-in** on Microsoft's own page; tokens are encrypted by your OS keychain.
+- **Backup & sync** through your own OneDrive / Google Drive / Dropbox folder.
+- **Accent themes** (Nebula, Aurora, Amethyst), **Reduce effects** mode and **keyboard shortcuts**.
+- **Auto-updates** itself, and uses ~0% CPU while you're in game.
 
-  | Launcher | What it reads |
-  | --- | --- |
-  | Lunar Client | `profiles/main` game folder, `profiles/*/mods/fabric-<ver>`, and each settings profile's `mods.json` (FPS, Ping, Coordinates, Keystrokes, Zoom are carried over to Astro's HUD) |
-  | Modrinth App | `app.db` (read-only; instance name/version/loader columns only) or legacy `profile.json` |
-  | Prism Launcher / PolyMC / MultiMC | `instance.cfg` + `mmc-pack.json`, custom `InstanceDir` |
-  | CurseForge app | `minecraftinstance.json` |
-  | Official Minecraft Launcher | `launcher_profiles.json` (incl. custom game dirs) |
-  | ATLauncher, GDLauncher (legacy + Carbon) | `instance.json` / `config.json` |
-  | Any folder | an instance, a launcher root, or a plain `.minecraft`; the loader and version are detected from the mod jars |
+</td>
+<td width="50%" valign="top">
 
-  You choose what to bring: mods, mod configs, resource packs, shader packs, options & server
-  list, worlds. Copied mods are matched on Modrinth by SHA-1, so they get update checks; jars
-  Modrinth doesn't know are kept as **LOCAL**. Forge/NeoForge instances come over as vanilla
-  (worlds, packs, settings) with a warning. Source launchers are never modified, and the UI only
-  passes opaque keys, so it cannot make the importer read or copy arbitrary paths.
-- **Bundles**: pick curated one-click sets when creating a profile (Essentials, Performance,
-  Shaders, Quality of life); mods missing for that Minecraft version are skipped, not fatal.
-- **Mod updates**: *Check for updates* asks Modrinth for every tracked mod in one request (by
-  file hash) and CurseForge per mod; *Update all* swaps in the new files.
-- **Loaders**: Fabric, Quilt (runs Fabric mods too) and vanilla profiles.
-- **Mods**: Modrinth + CurseForge search and install, with required dependencies resolved.
-- **Profiles**: separate mods/config/worlds per profile; `.astropack` export, `.astropack` /
-  `.mrpack` (Fabric/Quilt) import.
-- Frameless window with a custom title bar; the launcher stays open while you play (hiding is optional).
+### 🎮 The in-game client
+- **Right Shift mod menu** with search, categories, **favourites**, per-mod settings and **reset to defaults**.
+- **HUD**: FPS, CPS, coordinates, ping, keystrokes, armour and potion timers, all draggable in the HUD editor.
+- **Zoom**, **Freelook**, **Toggle Sprint**, **Fullbright**, **custom crosshair**.
+- **Custom main menu** with an animated starfield, aurora and your own skin.
+- **Customize** themes, corners, glow strength, animation speed, backgrounds and effects quality.
+- **Featherweight**: the whole HUD costs about **0.02 ms per frame**.
 
-**Mod**
+</td>
+</tr>
+</table>
 
-- Branded loading screen. **Main menu** with the menu on the left and your account's 3D skin on
-  the right (drag to rotate).
-- **Custom Singleplayer and Multiplayer screens**: world cards (icon, last played, mode,
-  version; *Advanced…* opens vanilla's list for edit/delete/backup) and server cards (favicon,
-  MOTD, live ping, players, edit/delete, direct connect). Same saves and servers.dat as vanilla.
-- **Customize** (main menu): colour themes (Nebula, Aurora, Solar, Crimson, Frost, Mono), your own
-  PNG background pictures per screen (drop them in `config/astroclient/backgrounds`), picture
-  dim, panel opacity, button style, player model on/off, and a switch back to vanilla menus.
-- **Right Shift mod menu**: centred panel with category tabs, search-as-you-type and a grid of
-  module cards (click to toggle, ⚙ or right-click for settings). Settings persist to
-  `config/astroclient.json`.
-- Modules: Freelook (hold **Left Alt**), Zoom (hold **C**), Fullbright, custom Crosshair (style,
-  colour, size, gap, thickness, outline), Toggle Sprint; HUD: FPS, CPS, Coordinates, Ping,
-  Keystrokes, Armor (durability), Potions (time left).
-- **HUD editor** (mod menu → *✎ Edit HUD*): drag any HUD element anywhere; snaps to screen edges,
-  centre lines and other elements; right-click resets one; positions are saved per element and
-  scale with the window.
-- Light on FPS: the whole HUD is drawn as one batch (on 1.21.1 each shape used to be its own
-  GPU draw call).
+## 📸 Screenshots
 
-## 2. Architecture
+<p align="center">
+  <img src="docs/screenshots/launcher-home.png" alt="Launcher home" width="100%">
+</p>
 
-```
-┌────────────────────────────── Astro Launcher (Electron) ───────────────────────────────┐
-│ Renderer (React, sandboxed)      Preload            Main process (Node)                │
-│ ┌─────────────────────────┐   ┌────────────┐   ┌─────────────────────────────────────┐ │
-│ │ TitleBar + AccountMenu  │   │window.astro│   │ ipc.ts                              │ │
-│ │ Home · Mods · Profiles  │◄─►│ typed IPC  │◄─►│  game/auth.ts     Microsoft (msmc)  │ │
-│ │ Console · Settings      │   │  bridge    │   │  game/java.ts     Mojang Java       │ │
-│ │ (no Node, no network)   │   └────────────┘   │  game/launch.ts   Fabric + MCLC     │ │
-│ └─────────────────────────┘                    │  game/console.ts  log ring buffer   │ │
-│                                                │  providers/       Modrinth, CF      │ │
-│                                                │  profiles/        store, packs      │ │
-│                                                └──────────────────┬──────────────────┘ │
-└───────────────────────────────────────────────────────────────────┼────────────────────┘
-                                         runtimes/java-runtime-delta │ spawns javaw + token
-                                                                    ▼
-                    ┌────── Minecraft 1.21.11 / 1.21.10 / 1.21.1 + Fabric ───────┐
-                    │ astroclient.jar: SplashOverlayMixin · MinecraftClientMixin │
-                    │ (title screen) · GameRendererMixin (zoom) · ModMenuScreen  │
-                    └────────────────────────────────────────────────────────────┘
-```
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/ingame-title.png" alt="Main menu"><p align="center"><sub><b>Custom main menu</b></sub></p></td>
+<td width="50%"><img src="docs/screenshots/ingame-modmenu.png" alt="Right Shift mod menu"><p align="center"><sub><b>Right Shift mod menu</b></sub></p></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/ingame-settings.png" alt="Mod settings"><p align="center"><sub><b>Per-mod settings with reset</b></sub></p></td>
+<td><img src="docs/screenshots/ingame-customize.png" alt="Customize"><p align="center"><sub><b>Customize everything</b></sub></p></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/launcher-mods.png" alt="Mod browser"><p align="center"><sub><b>Modrinth &amp; CurseForge browser</b></sub></p></td>
+<td><img src="docs/screenshots/launcher-settings.png" alt="Launcher settings"><p align="center"><sub><b>Accent themes &amp; settings</b></sub></p></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/launcher-profiles.png" alt="Profiles"><p align="center"><sub><b>Profiles with one-click performance mods</b></sub></p></td>
+<td><img src="docs/screenshots/launcher-home-aurora.png" alt="Aurora theme"><p align="center"><sub><b>Aurora accent theme</b></sub></p></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/screenshots/ingame-hud.png" alt="HUD in game"><p align="center"><sub><b>HUD: FPS, CPS, coordinates, ping and keystrokes</b></sub></p></td>
+</tr>
+</table>
 
-Design rules the code follows:
+## 📥 Download
 
-- **The renderer never touches the network, disk or secrets.** Tokens and the CurseForge key
-  stay in the main process, encrypted with Electron `safeStorage`.
-- **Every download is allow-listed and hash-checked**: mods only from `cdn.modrinth.com` /
-  `*.forgecdn.net`, Java only from Mojang's hosts. Imported packs cannot write outside their
-  profile folder.
-- **One shared game root, one folder per profile**: `<userData>/minecraft` holds assets,
-  libraries and versions; `profiles/<id>/instance` holds that profile's mods, config and saves.
+1. Grab **`Astro-Setup-<version>.exe`** from the [latest release](https://github.com/Vortexyyy/astro-releases/releases/latest).
+2. Run it, sign in with Microsoft, create a profile and press **Launch**.
+3. In game, press **Right Shift** to open the mod menu.
 
-## 3. Folder structure
+The launcher updates itself, and installs the matching Astro mod into your Fabric profiles automatically.
 
-```
-astro-client/
-├── launcher/src/
-│   ├── shared/types.ts                 types shared by main, preload and renderer
-│   ├── main/
-│   │   ├── index.ts                    frameless BrowserWindow, security defaults
-│   │   ├── ipc.ts                      every IPC handler; hides/shows window around the game
-│   │   ├── settings.ts                 settings.json, accounts, servers, encrypted secrets
-│   │   ├── net/http.ts                 JSON fetch, allow-listed + hashed downloads
-│   │   ├── util/fs.ts                  path-traversal guard
-│   │   ├── providers/                  modrinth.ts, curseforge.ts
-│   │   ├── profiles/                   store.ts, packs.ts, bundles.ts, updates.ts
-│   │   ├── importers/                  index.ts (registry + copy pipeline), sources.ts
-│   │   │                               (one scanner per launcher), inspect.ts, lunar.ts
-│   │   ├── backup.ts                   backup & sync folder (merge, restore, deletions)
-│   │   └── game/                       auth.ts, java.ts, loaders.ts, launch.ts, console.ts,
-│   │                                   astroMod.ts (bundled mod + perf mods + FPS defaults)
-│   ├── preload/index.ts
-│   └── renderer/src/
-│       ├── App.tsx  styles.css  api.ts
-│       ├── components/                 TitleBar, SkinHead, ImportWizard, VersionSelect,
-│       │                               BackupCard, …
-│       └── pages/                      Home, Browse, Profiles, Console, Settings
-└── mod/
-    ├── versions/<mc>/gradle.properties one Gradle subproject per Minecraft version
-    └── src/
-        ├── common/                     all features, compiled once per version
-        │   └── java/dev/astroclient/   AstroClient, module/, gui/{menu,title,worlds,servers,
-        │                               custom,theme,render,splash}/, mixin/ (splash, menus)
-        ├── legacy/                     shims for 1.21.1 (compat/Gfx, Keys, AstroScreen,
-        │                               Platform; GameRendererMixin)
-        ├── modern/                     the same shims for 1.21.9+ (new input/GUI APIs)
-        └── mc1_21_10/  mc1_21_11/      tiny per-version differences (button base, server ping)
-```
+## 🛠️ Build from source
 
-Shared code only calls Minecraft APIs that are identical across versions; anything that
-changed (input events, GUI matrices, textures, key categories, FOV type, skin supplier, a few
-constructors) goes through `dev.astroclient.compat`, which exists once per version folder.
-
-## 4. Running it
+| Part | Stack | Folder |
+| --- | --- | --- |
+| 🚀 Launcher | Electron + React + TypeScript (electron-vite) | [`launcher/`](launcher) |
+| 🎮 Client mod | Fabric Loader + Fabric API, Java 21, MC 1.21.1 / 1.21.10 / 1.21.11 | [`mod/`](mod) |
 
 ```bash
-cd launcher
+# client mod: builds every Minecraft version and copies the jars into the launcher
+cd mod
+./gradlew build copyToLauncher
+
+# launcher: run in development mode
+cd ../launcher
 npm install
 npm run dev
 ```
 
-```bash
-cd mod
-./gradlew copyToLauncher         # builds every version, copies jars to launcher/resources/astro-mod
-./gradlew :mc1_21_11:runClient   # dev game (also :mc1_21_10, :mc1_21_1)
-```
+Architecture, every feature in detail, and release notes for maintainers live in the
+**[developer guide](docs/DEVELOPMENT.md)**. Benchmarking the HUD is covered in
+[`mod/BENCHMARK.md`](mod/BENCHMARK.md).
 
-After `copyToLauncher`, just launch any Fabric/Quilt profile on 1.21.11, 1.21.10 or 1.21.1 and
-the launcher installs Astro Client (and Fabric API + performance mods) automatically.
+## 🔒 Privacy
 
-### Windows installer
+- Your Microsoft sign-in happens on Microsoft's own page. Astro never sees your password.
+- Tokens and API keys are encrypted with your operating system's keychain and never leave your PC.
+- Backups never include passwords, tokens, API keys or worlds.
+- No analytics, no telemetry, no account on any Astro server (there isn't one).
 
-```bash
-cd mod && ./gradlew copyToLauncher   # bundle the latest mod jars first
-cd ../launcher && npm run dist       # → dist/Astro-Setup-<version>.exe
-```
+## 💜 Support the project
 
-The installer lets you choose the install folder and adds Start menu and desktop shortcuts.
-An extra setup page (`build/installer.nsh`) offers an **Uninstall Astro Launcher** shortcut: it
-opens Astro's own uninstall window (`Astro Launcher.exe --uninstall`, `src/main/uninstall.ts`),
-where you choose what to remove (profiles & worlds go to the Recycle Bin; game files, Java,
-settings) before it runs the regular uninstaller. Windows Settings → Apps still works too.
-Bundled libraries are kept patched via `overrides` in `package.json` (`npm audit --omit=dev`).
-It isn't code-signed, so Windows SmartScreen shows "Windows protected your PC" →
-*More info* → *Run anyway*. The installed app requires a Microsoft account (offline play is
-only available when running from source).
+Astro is built in free time. The best way to help:
 
-If the build fails with `!include: could not open file`, the project path is longer than NSIS can
-handle (260 characters). Build from a short path, e.g. `subst X: <path to launcher>`, run
-`npm run dist` from `X:\`, then `subst X: /d`.
+- ⭐ **[Star this repo](https://github.com/Vortexyyy/astro-client/stargazers)**: it genuinely helps people find it.
+- 🐛 **[Open an issue](https://github.com/Vortexyyy/astro-client/issues)** for bugs or feature ideas.
+- 📣 Show it to a friend who plays Minecraft.
 
-## 5. Before you distribute it
+<p align="center">
+  <a href="https://github.com/Vortexyyy/astro-client/stargazers"><img src="https://img.shields.io/badge/%E2%AD%90%20Star%20Astro%20on%20GitHub-8b5cf6?style=for-the-badge&labelColor=0b0a24" alt="Star Astro on GitHub"></a>
+</p>
 
-- **Register your own Microsoft app.** Sign-in currently uses msmc's default public client,
-  which is fine for development. A public launcher should register an Azure app, apply for
-  Minecraft API access at <https://aka.ms/mce-reviewappid>, and run with
-  `ASTRO_MS_CLIENT_ID=<your client id>` (see `launcher/src/main/game/auth.ts`).
-- For a wider release, buy a code-signing certificate so Windows trusts the installer
-  (electron-builder signs automatically once `CSC_LINK` / `CSC_KEY_PASSWORD` are set).
-- Keep branding your own: Astro's name, logo and palette are original; don't reuse other
-  clients' assets.
-
-## 6. Supported versions
-
-The mod builds for 1.21.11, 1.21.10 and 1.21.1. Adding another 1.21.x version is usually a new
-`versions/<mc>/gradle.properties` plus, if an API changed, a shim in its folder. 26.x ships
-unobfuscated with Mojang names (no Yarn), so it needs its own mappings setup. The launcher can
-run any version; Astro's mod is simply skipped where no build exists.
-
-## Updates and releasing
-
-Source lives in the private `Vortexyyy/astro-client` repo. Installers are published to the public
-`Vortexyyy/astro-releases` repo, which holds builds only, so the app needs no token to update.
-Installed launchers check it on startup and every 4 hours, download new versions in the background,
-and install them when Astro closes (or straight away from **Settings → Launcher updates**).
-
-To ship a new version, bump `version` in `launcher/package.json`, then from `launcher/`:
-
-```bash
-bash scripts/release.sh
-```
+<p align="center"><sub>Astro Client is not affiliated with Mojang Studios or Microsoft. Minecraft is a trademark of Mojang Studios.<br>© Astro Client. All rights reserved.</sub></p>
