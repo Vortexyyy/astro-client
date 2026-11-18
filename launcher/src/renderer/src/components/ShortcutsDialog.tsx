@@ -8,12 +8,13 @@ export const SHORTCUTS: Array<{ keys: string[]; label: string }> = [
   { keys: ['Ctrl', '3'], label: 'Profiles' },
   { keys: ['Ctrl', '4'], label: 'Console' },
   { keys: ['Ctrl', '5'], label: 'Settings' },
+  { keys: ['Ctrl', 'L'], label: 'Log helper: analyze a log' },
   { keys: ['?'], label: 'Show this list' },
   { keys: ['Esc'], label: 'Close dialogs' }
 ];
 
 /** Cheat sheet for the launcher's keyboard shortcuts (opened with ? or the titlebar button). */
-export default function ShortcutsDialog({ onClose }: { onClose: () => void }) {
+export default function ShortcutsDialog({ onClose, onOpenLogHelper }: { onClose: () => void; onOpenLogHelper: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -51,6 +52,12 @@ export default function ShortcutsDialog({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </dl>
+        <footer className="modal-footer shortcuts-foot">
+          <span className="muted small-text grow">Game crashed? Paste its log and get the cause in plain English.</span>
+          <button className="btn-ghost small" onClick={onOpenLogHelper}>
+            <Icon name="sparkles" size={13} /> Analyze a log
+          </button>
+        </footer>
       </div>
     </div>
   );

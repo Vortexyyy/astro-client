@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LogLevel } from '@shared/types';
 import type { AppState } from '../App';
 import { astro } from '../api';
+import Icon from '../components/Icon';
 
 const LEVELS: Array<{ id: LogLevel; label: string }> = [
   { id: 'info', label: 'Info' },
@@ -101,6 +102,9 @@ export default function Console({ app }: { app: AppState }) {
             Open logs folder
           </button>
         )}
+        <button className="btn-ghost small" onClick={() => app.openLogHelper()} title="Find the cause of a crash or error (Ctrl+L)">
+          <Icon name="sparkles" size={13} /> Analyze a log
+        </button>
         {!follow && (
           <button className="btn-ghost small" onClick={() => setFollow(true)}>
             Jump to latest

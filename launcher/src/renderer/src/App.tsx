@@ -4,6 +4,7 @@ import { astro, errorText } from './api';
 import ConfirmDialog, { type ConfirmRequest } from './components/ConfirmDialog';
 import CrashDialog from './components/CrashDialog';
 import ImportWizard from './components/ImportWizard';
+import LogHelperDialog from './components/LogHelperDialog';
 import Starfield from './components/Starfield';
 import TitleBar, { type Page } from './components/TitleBar';
 import Browse from './pages/Browse';
@@ -49,6 +50,7 @@ export interface AppState {
   openImport(): void;
   confirm(request: ConfirmRequest): Promise<boolean>;
   showShortcuts(): void;
+  openLogHelper(): void;
 }
 
 const idleGame: GameState = { running: false, profileId: null, profileName: null, startedAt: null };
@@ -67,6 +69,7 @@ export default function App() {
   const [crash, setCrash] = useState<CrashInfo | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [logHelperOpen, setLogHelperOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; kind: 'info' | 'error' } | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<{
     request: ConfirmRequest;
@@ -246,7 +249,7 @@ export default function App() {
   const account = settings?.accounts.find((a) => a.uuid === settings.activeAccount) ?? null;
   const canPlay =
     Boolean(selectedId) && Boolean(settings) && (Boolean(account) || Boolean(settings?.offlineAllowed)) && !launch.launching && !game.running;
-  const modalOpen = importOpen || pendingConfirm !== null || shortcutsOpen || crash !== null;
+  const modalOpen = importOpen || pendingConfirm !== null || shortcutsOpen || logHelperOpen || crash !== null;
 
   // Keyboard shortcuts (listed in ShortcutsDialog)
   useEffect(() => {
@@ -261,6 +264,9 @@ export default function App() {
       } else if (ctrl && e.key === 'Enter') {
         e.preventDefault();
         if (canPlay) void play();
+      } else if (ctrl && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        setLogHelperOpen(true);
       } else if ((e.key === '?' && !typing && !ctrl) || (ctrl && e.key === '/')) {
         e.preventDefault();
         setShortcutsOpen(true);
@@ -271,6 +277,11 @@ export default function App() {
   }, [modalOpen, canPlay, play]);
 
   const closeShortcuts = useCallback(() => setShortcutsOpen(false), []);
+  const closeLogHelper = useCallback(() => setLogHelperOpen(false), []);
+  const openLogHelper = useCallback(() => {
+    setShortcutsOpen(false);
+    setLogHelperOpen(true);
+  }, []);
 
   const state: AppState = {
     profiles,
@@ -295,7 +306,8 @@ export default function App() {
     },
     openImport: () => setImportOpen(true),
     confirm,
-    showShortcuts: () => setShortcutsOpen(true)
+    showShortcuts: () => setShortcutsOpen(true),
+    openLogHelper
   };
 
   return (
@@ -310,7 +322,8 @@ export default function App() {
         {page === 'settings' && <Settings app={state} />}
       </main>
       {importOpen && <ImportWizard app={state} onClose={() => setImportOpen(false)} />}
-      {shortcutsOpen && <ShortcutsDialog onClose={closeShortcuts} />}
+      {shortcutsOpen && <ShortcutsDialog onClose={closeShortcuts} onOpenLogHelper={openLogHelper} />}
+      {logHelperOpen && <LogHelperDialog notify={notify} onClose={closeLogHelper} />}
       {crash && <CrashDialog crash={crash} notify={notify} onClose={() => setCrash(null)} />}
       {pendingConfirm && <ConfirmDialog request={pendingConfirm.request} onAnswer={answerConfirm} />}
       {toast && (

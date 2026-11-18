@@ -260,6 +260,55 @@ export interface CrashInfo {
   at: number;
 }
 
+/** One problem the log helper recognised. Every string is already redacted. */
+export interface LogFinding {
+  /** 'memory' | 'java' | 'mods' | 'mixin' | 'loader' | 'gpu' | 'unknown' */
+  cause: string;
+  title: string;
+  summary: string;
+  tips: string[];
+  evidence: string[];
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export type LogLineKind = 'exception' | 'caused-by' | 'thread' | 'fatal' | 'error' | 'description';
+
+export interface LogErrorLine {
+  /** 1-based line number in the pasted text */
+  line: number;
+  kind: LogLineKind;
+  text: string;
+}
+
+/** Result of the log helper. Built on this PC; every string is redacted (home path, username, players, tokens). */
+export interface LogAnalysis {
+  /** nothing (or only whitespace) was given */
+  empty: boolean;
+  /** the text has none of the shapes of a Minecraft / Java log */
+  looksLikeLog: boolean;
+  findings: LogFinding[];
+  errors: LogErrorLine[];
+  /** mods, Java and GPU details pulled out of the text */
+  involved: { mods: string[]; javaVersion: string | null; requiredJava: string | null; gpu: string | null };
+  /** top stack frames of the first exception */
+  topFrames: string[];
+  /** the analysed lines, redacted, with their original line numbers */
+  lines: Array<{ n: number; text: string }>;
+  totalLines: number;
+  /** set when the input was too big and part of it was skipped */
+  truncated: string | null;
+  /** short redacted report for "Copy summary" */
+  copyText: string;
+}
+
+/** A log file read by the main process for the log helper (text already redacted). */
+export interface LogFile {
+  name: string;
+  text: string;
+  /** set when only part of a big file was read */
+  note: string | null;
+}
+
 export interface DuplicateOptions {
   name: string;
   copyConfig: boolean;
@@ -377,6 +426,14 @@ export interface AstroApi {
   openCrashReport(profileId: string, fileName: string): Promise<void>;
   openLatestLog(profileId: string): Promise<void>;
   copyCrashDetails(): Promise<void>;
+  /** log helper: analyses pasted text locally; nothing is stored or uploaded */
+  analyzeLog(text: string): Promise<LogAnalysis>;
+  /** file picker for a .log / .txt; null when cancelled */
+  openLogFile(): Promise<LogFile | null>;
+  /** reads a dropped .log / .txt by path */
+  readLogFile(filePath: string): Promise<LogFile>;
+  /** clipboard text, redacted */
+  readClipboardLog(): Promise<LogFile>;
 
   scanLaunchers(): Promise<ImportCandidate[]>;
   pickImportFolder(): Promise<ImportCandidate[]>;

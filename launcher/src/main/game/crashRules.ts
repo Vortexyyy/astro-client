@@ -14,12 +14,14 @@ export interface CrashSummary {
 interface Rule {
   cause: CrashSummary['cause'];
   test: RegExp;
+  /** a broad catch-all: right often, but less certain than a specific message */
+  generic?: true;
   build(m: RegExpMatchArray, text: string): Omit<CrashSummary, 'cause' | 'evidence'>;
 }
 
 const JAVA_FOR_CLASS: Record<number, number> = { 52: 8, 55: 11, 60: 16, 61: 17, 65: 21, 66: 22, 67: 23, 68: 24, 69: 25 };
 
-function javaFor(classVersion: string | undefined): string {
+export function javaFor(classVersion: string | undefined): string {
   const major = Math.floor(Number(classVersion));
   const java = JAVA_FOR_CLASS[major];
   return java ? `Java ${java}` : 'a newer Java';
@@ -74,7 +76,7 @@ const RULES: Rule[] = [
   },
   {
     cause: 'mods',
-    test: /Mod '?([^'\r\n(]+?)'? \(([\w.-]+)\) [^\r\n]*? requires [^\r\n]*?(?:of|mod) '?([\w .-]+?)'?,? which is missing/i,
+    test: /Mod '?([^'\r\n(]+?)'? \(([\w.-]+)\) [^\r\n]*? requires [^\r\n]*?(?:of|mod) '?([\w .-]+?)'?(?: \([\w.-]+\))?,? which is missing/i,
     build: (m) => ({
       title: 'A mod is missing a dependency',
       summary: `${clean(m[1])} needs ${clean(m[3])}, which isn't installed.`,
@@ -83,7 +85,7 @@ const RULES: Rule[] = [
   },
   {
     cause: 'mods',
-    test: /requires [^\r\n]*?(?:of|mod) '?([\w .-]+?)'?,? which is missing/i,
+    test: /requires [^\r\n]*?(?:of|mod) '?([\w .-]+?)'?(?: \([\w.-]+\))?,? which is missing/i,
     build: (m) => ({
       title: 'A mod is missing a dependency',
       summary: `A mod needs ${clean(m[1])}, which isn't installed.`,
@@ -101,6 +103,7 @@ const RULES: Rule[] = [
   },
   {
     cause: 'mods',
+    generic: true,
     test: /Incompatible mods? (?:set|found)|Mod resolution failed|Duplicate mods? found|found duplicate mod/i,
     build: () => ({
       title: 'Incompatible or duplicate mods',
@@ -146,6 +149,7 @@ const RULES: Rule[] = [
   },
   {
     cause: 'loader',
+    generic: true,
     test: /net\.fabricmc\.loader\.impl\.FormattedException|FabricLoader[^\r\n]*(?:failed|error)|Failed to (?:load|instantiate) mod/i,
     build: () => ({
       title: 'Fabric Loader error',
@@ -155,6 +159,7 @@ const RULES: Rule[] = [
   },
   {
     cause: 'mods',
+    generic: true,
     test: /(?:NoClassDefFoundError|ClassNotFoundException|NoSuchMethodError|NoSuchFieldError):?\s*([\w/.$]+)?/,
     build: (m) => ({
       title: 'A mod is missing code it needs',
@@ -164,6 +169,7 @@ const RULES: Rule[] = [
   },
   {
     cause: 'gpu',
+    generic: true,
     test: /EXCEPTION_ACCESS_VIOLATION|SIGSEGV/,
     build: () => ({
       title: 'The game crashed in native code',
@@ -181,6 +187,24 @@ function evidenceFor(text: string, re: RegExp): string[] {
   for (const line of text.split(/\r?\n/)) {
     if (single.test(line)) out.push(line.trim().slice(0, 300));
     if (out.length >= 3) break;
+  }
+  return out;
+}
+
+export interface CrashMatch extends CrashSummary {
+  generic: boolean;
+}
+
+/** Every rule that matches, most specific first (the first one is what summarizeCrash reports). */
+export function matchAllRules(text: string): CrashMatch[] {
+  const out: CrashMatch[] = [];
+  for (const rule of RULES) {
+    const m = text.match(rule.test);
+    if (!m) continue;
+    const built = rule.build(m, text);
+    if (out.some((f) => f.title === built.title)) continue; // a broader rule restating the same problem
+    const ev = evidenceFor(text, rule.test);
+    out.push({ cause: rule.cause, ...built, evidence: ev.length ? ev : [m[0].slice(0, 300)], generic: Boolean(rule.generic) });
   }
   return out;
 }

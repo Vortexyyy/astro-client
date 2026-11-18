@@ -17,7 +17,7 @@ const CRASH_FILE = /^crash-[\w.-]+\.txt$/;
 
 let lastCopyText = '';
 
-async function redactor(): Promise<(text: string) => string> {
+export async function redactor(): Promise<(text: string) => string> {
   let username = '';
   try {
     username = userInfo().username;

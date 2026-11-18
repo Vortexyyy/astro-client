@@ -6,6 +6,7 @@ import { backupNow, backupStatus, chooseBackupFolder, noteProfileDeleted, onBack
 import { addMicrosoftAccount } from './game/auth';
 import * as gameConsole from './game/console';
 import { analyzeExit, copyCrashDetails, openCrashReport, openLatestLog } from './game/crash';
+import { analyzePastedLog, openLogFile, readClipboardLog, readDroppedLog } from './game/logHelper';
 import { gameState, killGame, launchProfile, onGameExit, onGameState } from './game/launch';
 import { listGameVersions } from './game/loaders';
 import { importMany, pickFolder, scanAll } from './importers';
@@ -182,6 +183,11 @@ export function registerIpc(mainWindow: () => BrowserWindow | null): void {
   ipcMain.handle('crash:openReport', (_e, id: string, fileName: string) => openCrashReport(String(id), String(fileName)));
   ipcMain.handle('crash:openLog', (_e, id: string) => openLatestLog(String(id)));
   ipcMain.handle('crash:copy', () => copyCrashDetails());
+  // Log helper: pasted text stays in memory and is never logged or saved.
+  ipcMain.handle('logs:analyze', (_e, text: unknown) => analyzePastedLog(text));
+  ipcMain.handle('logs:open', (e) => openLogFile(windowOf(e)));
+  ipcMain.handle('logs:read', (_e, filePath: unknown) => readDroppedLog(filePath));
+  ipcMain.handle('logs:clipboard', () => readClipboardLog());
 
   ipcMain.handle('settings:get', () => getPublicSettings());
   ipcMain.handle('app:version', () => app.getVersion());

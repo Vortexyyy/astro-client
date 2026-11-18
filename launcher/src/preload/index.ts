@@ -38,6 +38,10 @@ const api: AstroApi = {
   openCrashReport: (profileId, fileName) => ipcRenderer.invoke('crash:openReport', profileId, fileName),
   openLatestLog: (profileId) => ipcRenderer.invoke('crash:openLog', profileId),
   copyCrashDetails: () => ipcRenderer.invoke('crash:copy'),
+  analyzeLog: (text) => ipcRenderer.invoke('logs:analyze', text),
+  openLogFile: () => ipcRenderer.invoke('logs:open'),
+  readLogFile: (filePath) => ipcRenderer.invoke('logs:read', filePath),
+  readClipboardLog: () => ipcRenderer.invoke('logs:clipboard'),
 
   scanLaunchers: () => ipcRenderer.invoke('import:scan'),
   pickImportFolder: () => ipcRenderer.invoke('import:folder'),
