@@ -129,4 +129,4 @@ Astro is built in free time. The best way to help:
   <a href="https://github.com/Vortexyyy/astro-client/stargazers"><img src="https://img.shields.io/badge/%E2%AD%90%20Star%20Astro%20on%20GitHub-8b5cf6?style=for-the-badge&labelColor=0b0a24" alt="Star Astro on GitHub"></a>
 </p>
 
-<p align="center"><sub>Astro Client is not affiliated with Mojang Studios or Microsoft. Minecraft is a trademark of Mojang Studios.<br>© Astro Client. All rights reserved.</sub></p>
+<p align="center"><sub>Astro Client is not affiliated with Mojang Studios or Microsoft. Minecraft is a trademark of Mojang Studios.<br>MIT licensed (see [LICENSE](LICENSE)).</sub></p>
