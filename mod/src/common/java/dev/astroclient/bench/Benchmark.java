@@ -162,6 +162,8 @@ public final class Benchmark {
         client.options.getEnableVsync().setValue(false);
         client.options.getMaxFps().setValue(260);
         client.options.getViewDistance().setValue(12);
+        // dev runs are silent: master volume to zero (the dev run folder's options only)
+        client.options.getSoundVolumeOption(net.minecraft.sound.SoundCategory.MASTER).setValue(0.0);
         client.options.pauseOnLostFocus = false;
         relaxInactivityLimit(client);
         for (Module m : AstroClient.get().modules().all()) {
