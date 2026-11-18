@@ -4,6 +4,9 @@ import dev.astroclient.bench.Benchmark;
 import dev.astroclient.compat.Gfx;
 import dev.astroclient.gui.hud.HudEditorScreen;
 import dev.astroclient.module.impl.ArmorStatus;
+import dev.astroclient.module.impl.ComboDisplay;
+import dev.astroclient.module.impl.ItemCounter;
+import dev.astroclient.module.impl.Waypoints;
 import dev.astroclient.module.impl.CpsCounter;
 import dev.astroclient.module.impl.Coordinates;
 import dev.astroclient.module.impl.Crosshair;
@@ -53,6 +56,9 @@ public final class ModuleManager {
         register(new Keystrokes());
         register(new ArmorStatus());
         register(new PotionEffects());
+        register(new ComboDisplay());
+        register(new ItemCounter());
+        register(new Waypoints());
         cps = get(CpsCounter.class);
         crosshair = get(Crosshair.class);
     }

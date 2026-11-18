@@ -17,6 +17,7 @@ const NAV: Array<{ id: Page; label: string; icon: IconName }> = [
 export default function TitleBar({ app, page }: { app: AppState; page: Page }) {
   const navRef = useRef<HTMLElement>(null);
   const [indicator, setIndicator] = useState<{ x: number; w: number } | null>(null);
+  const updateCount = app.modUpdates && app.modUpdates.profileId === app.selectedId ? app.modUpdates.updates.length : 0;
 
   // The active-tab glow slides between tabs; measured from the DOM so it follows the real widths.
   useLayoutEffect(() => {
@@ -28,7 +29,7 @@ export default function TitleBar({ app, page }: { app: AppState; page: Page }) {
     void document.fonts?.ready.then(measure);
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [page]);
+  }, [page, updateCount > 0]);
 
   return (
     <header className="titlebar">
@@ -53,11 +54,20 @@ export default function TitleBar({ app, page }: { app: AppState; page: Page }) {
             className={`tab ${page === n.id ? 'active' : ''}`}
             onClick={() => app.navigate(n.id)}
             aria-current={page === n.id ? 'page' : undefined}
-            title={`${n.label} (Ctrl+${i + 1})`}
+            title={
+              n.id === 'profiles' && updateCount
+                ? `${n.label}: ${updateCount} mod update${updateCount > 1 ? 's' : ''} available (Ctrl+${i + 1})`
+                : `${n.label} (Ctrl+${i + 1})`
+            }
           >
             <Icon name={n.icon} size={15} />
             {n.label}
             {n.id === 'console' && app.game.running && <span className="live-dot" title="Game running" />}
+            {n.id === 'profiles' && updateCount > 0 && (
+              <span className="tab-badge" aria-label={`${updateCount} mod updates`}>
+                {updateCount > 99 ? '99+' : updateCount}
+              </span>
+            )}
           </button>
         ))}
       </nav>

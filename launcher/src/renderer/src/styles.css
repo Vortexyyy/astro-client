@@ -3117,3 +3117,176 @@ kbd {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Mod update badge (Profiles tab) ── */
+.tab-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font: 700 10px/1 var(--font);
+  font-variant-numeric: tabular-nums;
+  color: var(--bg);
+  background: var(--accent-2);
+  box-shadow: 0 0 10px rgb(var(--accent-2-rgb) / 0.55);
+}
+
+:root[data-effects='reduced'] .tab-badge {
+  box-shadow: none;
+}
+
+/* ── Settings: mod updates ── */
+.mod-updates-card {
+  display: grid;
+  gap: 14px;
+}
+
+.switch-row.disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Profile stats ── */
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0 16px;
+}
+
+.profile-stats > div {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgb(var(--accent-rgb) / 0.06);
+}
+
+.profile-stats dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.profile-stats dd {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Crash helper & profile dialogs ── */
+.crash-dialog {
+  width: min(560px, 100%);
+  gap: 12px;
+}
+
+.crash-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.crash-head .card-label {
+  margin: 0 0 2px;
+}
+
+.crash-head h3 {
+  margin: 0;
+}
+
+.crash-dialog > p {
+  margin: 0;
+}
+
+.crash-tips {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.crash-evidence {
+  margin: 0;
+  max-height: 140px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #cfcdee;
+  background: rgba(7, 6, 15, 0.75);
+  border: 1px solid var(--border);
+  user-select: text;
+}
+
+.crash-actions {
+  flex-wrap: wrap;
+}
+
+.profile-dialog {
+  width: min(460px, 100%);
+}
+
+.dialog-form {
+  display: grid;
+  gap: 14px;
+}
+
+.dialog-form .modal-footer {
+  justify-content: flex-end;
+}
+
+.code-input {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  font-size: 12px;
+  color: var(--text);
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+
+.form-error {
+  color: var(--danger);
+}
+
+@media (max-width: 1100px) {
+  .profile-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Profile detail header: five actions; keep the subtitle on one line and wrap the buttons instead */
+.profile-detail > .page-header {
+  flex-wrap: wrap;
+}
+
+.profile-detail > .page-header > div:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.profile-detail > .page-header p {
+  white-space: nowrap;
+}
+
+.profile-detail > .page-header > .row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.profile-detail > .page-header > .row > button {
+  padding-inline: 12px;
+}

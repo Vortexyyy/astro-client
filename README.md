@@ -32,6 +32,8 @@
 - **Microsoft sign-in** on Microsoft's own page; tokens are encrypted by your OS keychain.
 - **Backup & sync** through your own OneDrive / Google Drive / Dropbox folder.
 - **Accent themes** (Nebula, Aurora, Amethyst), **Reduce effects** mode and **keyboard shortcuts**.
+- **Playtime and stats** per profile, a **crash helper** that explains likely causes in plain English (with your paths and name redacted), and **auto mod updates** with a one-click *Update all*.
+- **Duplicate a profile** or share a short **code** with friends: it carries only the mod list, never accounts or paths.
 - **Auto-updates** itself, and uses ~0% CPU while you're in game.
 
 </td>
@@ -40,10 +42,11 @@
 ### 🎮 The in-game client
 - **Right Shift mod menu** with search, categories, **favourites**, per-mod settings and **reset to defaults**.
 - **HUD**: FPS, CPS, coordinates, ping, keystrokes, armour and potion timers, all draggable in the HUD editor.
-- **Zoom**, **Freelook**, **Toggle Sprint**, **Fullbright**, **custom crosshair**.
+- **Zoom**, **Freelook**, **Toggle Sprint**, **Fullbright**, and a **custom crosshair** with presets, a dynamic gap and colour-on-player.
+- **Combo counter**, **item counter** (arrows, pots, gapples, pearls, blocks) and **waypoints** with a direction arrow.
 - **Custom main menu** with an animated starfield, aurora and your own skin.
 - **Customize** themes, corners, glow strength, animation speed, backgrounds and effects quality.
-- **Featherweight**: the whole HUD costs about **0.02 ms per frame**.
+- **Featherweight**: the whole HUD costs a fraction of a millisecond per frame.
 
 </td>
 </tr>

@@ -43,8 +43,8 @@ export default function Settings({ app }: { app: AppState }) {
     setOfflineName(s.offlineName);
   }, [s?.javaMode, s?.javaPath, s?.hideOnLaunch, s?.autoInstallAstro, s?.offlineName]);
 
-  /** Appearance changes apply at once (optimistically) and save in the background. */
-  const setAppearance = (patch: { theme?: LauncherTheme; reduceEffects?: boolean }) => {
+  /** Appearance and mod-update switches apply at once (optimistically) and save in the background. */
+  const setInstant = (patch: { theme?: LauncherTheme; reduceEffects?: boolean; checkModUpdates?: boolean; autoUpdateMods?: boolean }) => {
     if (!s) return;
     const previous = s;
     app.setSettings({ ...s, ...patch });
@@ -134,7 +134,7 @@ export default function Settings({ app }: { app: AppState }) {
         <div className="theme-grid" role="radiogroup" aria-label="Accent theme">
           {THEMES.map((t) => (
             <label key={t.id} className={`theme-option ${s.theme === t.id ? 'on' : ''}`} data-preview={t.id}>
-              <input type="radio" name="theme" checked={s.theme === t.id} onChange={() => setAppearance({ theme: t.id })} />
+              <input type="radio" name="theme" checked={s.theme === t.id} onChange={() => setInstant({ theme: t.id })} />
               <span className="theme-swatch" aria-hidden="true">
                 <span />
               </span>
@@ -147,11 +147,41 @@ export default function Settings({ app }: { app: AppState }) {
           ))}
         </div>
         <label className="switch-row">
-          <input type="checkbox" checked={s.reduceEffects} onChange={(e) => setAppearance({ reduceEffects: e.target.checked })} />
+          <input type="checkbox" checked={s.reduceEffects} onChange={(e) => setInstant({ reduceEffects: e.target.checked })} />
           <span className="switch" aria-hidden="true" />
           <span>
             Reduce effects
             <span className="muted small-text switch-note">Stills the starfield and animations and turns off glass blur. Good for slower PCs.</span>
+          </span>
+        </label>
+      </div>
+
+      <div className="card mod-updates-card">
+        <div>
+          <h3>Mod updates</h3>
+          <p className="muted small-text">Uses the same check as the Profiles page. Applies right away.</p>
+        </div>
+        <label className="switch-row">
+          <input type="checkbox" checked={s.checkModUpdates} onChange={(e) => setInstant({ checkModUpdates: e.target.checked })} />
+          <span className="switch" aria-hidden="true" />
+          <span>
+            Check mod updates on launch
+            <span className="muted small-text switch-note">
+              Checks the selected profile when Astro starts and before each launch, and shows a count on the Profiles tab.
+            </span>
+          </span>
+        </label>
+        <label className={`switch-row ${s.checkModUpdates ? '' : 'disabled'}`}>
+          <input
+            type="checkbox"
+            checked={s.autoUpdateMods}
+            disabled={!s.checkModUpdates}
+            onChange={(e) => setInstant({ autoUpdateMods: e.target.checked })}
+          />
+          <span className="switch" aria-hidden="true" />
+          <span>
+            Install updates automatically
+            <span className="muted small-text switch-note">Off: you press Update all yourself. On: found updates install before the game starts.</span>
           </span>
         </label>
       </div>

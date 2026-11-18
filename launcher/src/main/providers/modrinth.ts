@@ -109,3 +109,8 @@ export async function modrinthProjectTitles(ids: string[]): Promise<Record<strin
   }
   return out;
 }
+
+/** One exact Modrinth version (used when importing a share code). */
+export function modrinthVersion(versionId: string): Promise<Version & { version_number: string; game_versions: string[]; loaders: string[] }> {
+  return getJson(`${API}/version/${encodeURIComponent(versionId)}`);
+}

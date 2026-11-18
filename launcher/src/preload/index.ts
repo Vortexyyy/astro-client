@@ -21,11 +21,23 @@ const api: AstroApi = {
   openProfileFolder: (id) => ipcRenderer.invoke('profiles:open', id),
   exportProfile: (id) => ipcRenderer.invoke('profiles:export', id),
   importProfile: () => ipcRenderer.invoke('profiles:import'),
+  duplicateProfile: (id, options) => ipcRenderer.invoke('profiles:duplicate', id, options),
+  copyShareCode: (id) => ipcRenderer.invoke('profiles:shareCode', id),
+  importShareCode: (code) => ipcRenderer.invoke('profiles:importCode', code),
 
   listBundles: () => ipcRenderer.invoke('bundles:list'),
   installBundle: (profileId, bundleId) => ipcRenderer.invoke('bundles:install', profileId, bundleId),
   checkUpdates: (profileId) => ipcRenderer.invoke('updates:check', profileId),
   applyUpdates: (profileId, ids) => ipcRenderer.invoke('updates:apply', profileId, ids),
+  autoCheckUpdates: (profileId) => ipcRenderer.invoke('updates:auto', profileId),
+  onModUpdates: (listener) => subscribe('updates:status', listener),
+
+  getStats: () => ipcRenderer.invoke('stats:get'),
+  onStats: (listener) => subscribe('stats:changed', listener),
+  onCrash: (listener) => subscribe('game:crash', listener),
+  openCrashReport: (profileId, fileName) => ipcRenderer.invoke('crash:openReport', profileId, fileName),
+  openLatestLog: (profileId) => ipcRenderer.invoke('crash:openLog', profileId),
+  copyCrashDetails: () => ipcRenderer.invoke('crash:copy'),
 
   scanLaunchers: () => ipcRenderer.invoke('import:scan'),
   pickImportFolder: () => ipcRenderer.invoke('import:folder'),

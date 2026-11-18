@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { ConsoleLine, GameState, Profile, PublicSettings } from '@shared/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ConsoleLine, CrashInfo, GameState, ModUpdateStatus, Profile, ProfileStats, PublicSettings } from '@shared/types';
 import { astro, errorText } from './api';
 import ConfirmDialog, { type ConfirmRequest } from './components/ConfirmDialog';
+import CrashDialog from './components/CrashDialog';
 import ImportWizard from './components/ImportWizard';
 import Starfield from './components/Starfield';
 import TitleBar, { type Page } from './components/TitleBar';
@@ -33,6 +34,10 @@ export interface AppState {
   game: GameState;
   launch: LaunchProgress;
   console: ConsoleLine[];
+  stats: Record<string, ProfileStats>;
+  /** latest mod update check for a profile (automatic or from the Check for updates button) */
+  modUpdates: ModUpdateStatus | null;
+  setModUpdates(status: ModUpdateStatus | null): void;
   select(id: string): void;
   refresh(): Promise<void>;
   upsert(profile: Profile): void;
@@ -57,6 +62,9 @@ export default function App() {
   const [game, setGame] = useState<GameState>(idleGame);
   const [launch, setLaunch] = useState<LaunchProgress>(idleLaunch);
   const [consoleLines, setConsoleLines] = useState<ConsoleLine[]>([]);
+  const [stats, setStats] = useState<Record<string, ProfileStats>>({});
+  const [modUpdates, setModUpdates] = useState<ModUpdateStatus | null>(null);
+  const [crash, setCrash] = useState<CrashInfo | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; kind: 'info' | 'error' } | null>(null);
@@ -104,6 +112,10 @@ export default function App() {
     astro.getSettings().then(setSettings, (err) => notify(errorText(err), 'error'));
     astro.getGameState().then(setGame, () => undefined);
     astro.getConsole().then(setConsoleLines, () => undefined);
+    astro.getStats().then(setStats, () => undefined);
+    const offStats = astro.onStats(setStats);
+    const offCrash = astro.onCrash(setCrash);
+    const offUpdates = astro.onModUpdates(setModUpdates);
 
     const offConsole = astro.onConsole((batch) =>
       setConsoleLines((lines) => {
@@ -122,11 +134,34 @@ export default function App() {
       if (e.type === 'error') setLaunch({ ...idleLaunch, status: e.message });
     });
     return () => {
+      offStats();
+      offCrash();
+      offUpdates();
       offConsole();
       offState();
       offLaunch();
     };
   }, [refresh, notify]);
+
+  // Applied automatic updates are announced once, whoever triggered the check.
+  useEffect(() => {
+    const applied = modUpdates?.applied;
+    if (!applied || !applied.installed.length) return;
+    void refresh();
+    notify(
+      `Updated ${applied.installed.length} mod(s) automatically${applied.skipped.length ? `; ${applied.skipped.length} failed` : ''}`,
+      applied.skipped.length ? 'error' : 'info'
+    );
+  }, [modUpdates, refresh, notify]);
+
+  // Start-up mod update check for the selected profile (once per launcher start).
+  const startupChecked = useRef(false);
+  useEffect(() => {
+    if (startupChecked.current || !settings || !selectedId) return;
+    startupChecked.current = true;
+    if (!settings.checkModUpdates) return;
+    astro.autoCheckUpdates(selectedId).then((status) => status && setModUpdates(status), () => undefined);
+  }, [settings, selectedId]);
 
   const upsert = useCallback((profile: Profile) => {
     setProfiles((list) => {
@@ -211,7 +246,7 @@ export default function App() {
   const account = settings?.accounts.find((a) => a.uuid === settings.activeAccount) ?? null;
   const canPlay =
     Boolean(selectedId) && Boolean(settings) && (Boolean(account) || Boolean(settings?.offlineAllowed)) && !launch.launching && !game.running;
-  const modalOpen = importOpen || pendingConfirm !== null || shortcutsOpen;
+  const modalOpen = importOpen || pendingConfirm !== null || shortcutsOpen || crash !== null;
 
   // Keyboard shortcuts (listed in ShortcutsDialog)
   useEffect(() => {
@@ -244,6 +279,9 @@ export default function App() {
     game,
     launch,
     console: consoleLines,
+    stats,
+    modUpdates,
+    setModUpdates,
     select: setSelectedId,
     refresh,
     upsert,
@@ -273,6 +311,7 @@ export default function App() {
       </main>
       {importOpen && <ImportWizard app={state} onClose={() => setImportOpen(false)} />}
       {shortcutsOpen && <ShortcutsDialog onClose={closeShortcuts} />}
+      {crash && <CrashDialog crash={crash} notify={notify} onClose={() => setCrash(null)} />}
       {pendingConfirm && <ConfirmDialog request={pendingConfirm.request} onAnswer={answerConfirm} />}
       {toast && (
         <div className={`toast toast-${toast.kind}`} role={toast.kind === 'error' ? 'alert' : 'status'}>

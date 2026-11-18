@@ -15,7 +15,25 @@ import { ensureLoaderProfile, loaderLabel } from './loaders';
 let state: GameState = { running: false, profileId: null, profileName: null, startedAt: null };
 let child: ChildProcess | null = null;
 let launching = false;
+let stoppedByUser = false;
 const stateListeners = new Set<(s: GameState) => void>();
+
+export interface GameExit {
+  profileId: string;
+  profileName: string;
+  startedAt: number;
+  endedAt: number;
+  code: number | null;
+  signal: NodeJS.Signals | null;
+  /** the player pressed Force stop */
+  stoppedByUser: boolean;
+}
+const exitListeners = new Set<(e: GameExit) => void>();
+
+export function onGameExit(listener: (e: GameExit) => void): () => void {
+  exitListeners.add(listener);
+  return () => exitListeners.delete(listener);
+}
 
 function setState(next: GameState) {
   state = next;
@@ -34,6 +52,7 @@ export function onGameState(listener: (s: GameState) => void): () => void {
 export function killGame(): void {
   if (child && !child.killed) {
     gameConsole.log('Stopping the game at your request…', 'launcher');
+    stoppedByUser = true;
     child.kill();
   }
 }
@@ -96,12 +115,26 @@ export async function launchProfile(profileArg: Profile, options: LaunchOptions,
     if (!proc) throw new Error('Minecraft failed to start. Check the Console for details.');
 
     child = proc;
-    proc.once('exit', (code) => {
+    stoppedByUser = false;
+    const startedAt = Date.now();
+    const session = { id: profile.id, name: profile.name };
+    proc.once('exit', (code, signal) => {
       child = null;
       gameConsole.log(`──── Game exited with code ${code ?? 'unknown'} ────`, code ? 'error' : 'launcher');
+      const exit: GameExit = {
+        profileId: session.id,
+        profileName: session.name,
+        startedAt,
+        endedAt: Date.now(),
+        code,
+        signal,
+        stoppedByUser
+      };
+      stoppedByUser = false;
       setState({ running: false, profileId: null, profileName: null, startedAt: null });
+      for (const l of exitListeners) l(exit);
     });
-    setState({ running: true, profileId: profile.id, profileName: profile.name, startedAt: Date.now() });
+    setState({ running: true, profileId: profile.id, profileName: profile.name, startedAt });
     status(options.server ? `Game running, joining ${options.server}` : 'Game running');
   } catch (err) {
     gameConsole.log((err as Error).message, 'error');

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { AppState } from '../App';
-import { astro, errorText } from '../api';
+import { astro, errorText, formatPlaytime, timeAgo } from '../api';
 import { MicrosoftLogo } from '../components/TitleBar';
 import SkinHead from '../components/SkinHead';
 import Icon from '../components/Icon';
@@ -17,22 +17,14 @@ function useElapsed(since: number | null): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function timeAgo(when: number): string {
-  const minutes = Math.round((Date.now() - when) / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
-  const days = Math.round(hours / 24);
-  return days === 1 ? 'yesterday' : `${days} days ago`;
-}
-
 export default function Home({ app }: { app: AppState }) {
   const s = app.settings;
   const profile = app.profiles.find((p) => p.id === app.selectedId) ?? null;
   const account = s?.accounts.find((a) => a.uuid === s.activeAccount) ?? null;
   const elapsed = useElapsed(app.game.startedAt);
   const busy = app.launch.launching || app.game.running;
+  const stats = profile ? app.stats[profile.id] : undefined;
+  const lastPlayed = stats?.lastPlayed ?? profile?.lastPlayed ?? null;
   const needsAccount = !account && !s?.offlineAllowed;
 
   const label = app.game.running ? 'Playing' : app.launch.launching ? 'Launching' : 'Launch Game';
@@ -121,9 +113,21 @@ export default function Home({ app }: { app: AppState }) {
               <Icon name="cpu" size={14} />
               {Math.round((profile.memoryMb / 1024) * 10) / 10} GB
             </li>
-            <li>
-              <Icon name="clock" size={14} />
-              {profile.lastPlayed ? `Played ${timeAgo(profile.lastPlayed)}` : 'Never played'}
+            {stats && stats.launches > 0 ? (
+              <>
+                <li title="Total playtime on this profile">
+                  <Icon name="clock" size={14} />
+                  {formatPlaytime(stats.playtimeMs)} played
+                </li>
+                <li title="Launches">
+                  <Icon name="play" size={12} />
+                  {stats.launches} {stats.launches === 1 ? 'launch' : 'launches'}
+                </li>
+              </>
+            ) : null}
+            <li title={lastPlayed ? new Date(lastPlayed).toLocaleString() : undefined}>
+              <Icon name="calendar" size={14} />
+              {lastPlayed ? `Last played ${timeAgo(lastPlayed)}` : 'Not played yet'}
             </li>
           </ul>
         )}

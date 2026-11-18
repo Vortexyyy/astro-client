@@ -23,6 +23,8 @@ interface StoredSettings {
   servers: ServerEntry[];
   theme: LauncherTheme;
   reduceEffects: boolean;
+  checkModUpdates: boolean;
+  autoUpdateMods: boolean;
   secrets: { curseforgeApiKey?: string };
 }
 
@@ -40,6 +42,8 @@ const defaults: StoredSettings = {
   servers: [],
   theme: 'nebula',
   reduceEffects: false,
+  checkModUpdates: true,
+  autoUpdateMods: false,
   secrets: {}
 };
 
@@ -107,7 +111,9 @@ function toPublic(s: StoredSettings): PublicSettings {
     offlineAllowed: !app.isPackaged,
     offlineName: s.offlineName,
     theme: isTheme(s.theme) ? s.theme : 'nebula',
-    reduceEffects: Boolean(s.reduceEffects)
+    reduceEffects: Boolean(s.reduceEffects),
+    checkModUpdates: s.checkModUpdates !== false,
+    autoUpdateMods: Boolean(s.autoUpdateMods)
   };
 }
 
@@ -150,6 +156,17 @@ export async function mergeServers(servers: ServerEntry[]): Promise<PublicSettin
   return save({ ...s, servers: [...s.servers, ...add] });
 }
 
+export async function getModUpdateSettings(): Promise<{ check: boolean; autoInstall: boolean }> {
+  const s = await load();
+  return { check: s.checkModUpdates !== false, autoInstall: Boolean(s.autoUpdateMods) };
+}
+
+/** Minecraft account names, used to redact crash summaries. */
+export async function getPlayerNames(): Promise<string[]> {
+  const s = await load();
+  return [...s.accounts.map((a) => a.name), s.offlineName].filter(Boolean);
+}
+
 export async function getHideOnLaunch(): Promise<boolean> {
   return (await load()).hideOnLaunch;
 }
@@ -174,6 +191,8 @@ export async function updateSettings(patch: SettingsPatch): Promise<PublicSettin
     next.theme = patch.theme;
   }
   if (patch.reduceEffects !== undefined) next.reduceEffects = Boolean(patch.reduceEffects);
+  if (patch.checkModUpdates !== undefined) next.checkModUpdates = Boolean(patch.checkModUpdates);
+  if (patch.autoUpdateMods !== undefined) next.autoUpdateMods = Boolean(patch.autoUpdateMods);
   if (patch.offlineName !== undefined) {
     const name = patch.offlineName.trim();
     if (!/^\w{3,16}$/.test(name)) throw new Error('Offline name must be 3-16 letters, digits or _.');

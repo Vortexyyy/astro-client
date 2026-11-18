@@ -50,4 +50,9 @@ public final class Gfx {
     public static void texture(DrawContext c, Identifier id, int x, int y, float u, float v, int w, int h, int texW, int texH) {
         c.drawTexture(RenderPipelines.GUI_TEXTURED, id, x, y, u, v, w, h, texW, texH);
     }
+
+    /** Same, multiplied by an ARGB tint. */
+    public static void texture(DrawContext c, Identifier id, int x, int y, float u, float v, int w, int h, int texW, int texH, int argb) {
+        c.drawTexture(RenderPipelines.GUI_TEXTURED, id, x, y, u, v, w, h, texW, texH, argb);
+    }
 }

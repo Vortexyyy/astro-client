@@ -75,6 +75,14 @@ export interface ModUpdate {
   newVersion: string;
 }
 
+/** Result of the automatic (start-up / pre-launch) mod update check. */
+export interface ModUpdateStatus {
+  profileId: string;
+  updates: ModUpdate[];
+  /** set when "Install updates automatically" applied them */
+  applied?: { installed: string[]; skipped: string[] };
+}
+
 export interface BatchResult {
   profile: Profile;
   installed: string[];
@@ -180,6 +188,10 @@ export interface PublicSettings {
   theme: LauncherTheme;
   /** turn off background animation, blur and other decorative effects */
   reduceEffects: boolean;
+  /** check the selected profile's mods for updates when the launcher starts and before each launch */
+  checkModUpdates: boolean;
+  /** install found mod updates without asking (off by default) */
+  autoUpdateMods: boolean;
 }
 
 export interface SettingsPatch {
@@ -192,6 +204,8 @@ export interface SettingsPatch {
   activeAccount?: string;
   theme?: LauncherTheme;
   reduceEffects?: boolean;
+  checkModUpdates?: boolean;
+  autoUpdateMods?: boolean;
 }
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'launcher';
@@ -218,6 +232,43 @@ export type LaunchEvent =
 export interface LaunchOptions {
   /** host[:port] to join directly once the game starts */
   server?: string;
+}
+
+// ── Playtime & crashes ───────────────────────────────────────────────────
+
+export interface ProfileStats {
+  playtimeMs: number;
+  launches: number;
+  lastPlayed: number | null;
+  lastSessionMs: number;
+}
+
+/** Plain-English crash summary. Every string is already redacted (home path, username, tokens). */
+export interface CrashInfo {
+  profileId: string;
+  profileName: string;
+  exitCode: number | null;
+  /** e.g. 'memory' | 'java' | 'mods' | 'mixin' | 'loader' | 'gpu' | 'unknown' */
+  cause: string;
+  title: string;
+  summary: string;
+  tips: string[];
+  /** the few log lines that triggered the rule */
+  evidence: string[];
+  /** file name of the crash report written during this session, if any */
+  crashReport: string | null;
+  at: number;
+}
+
+export interface DuplicateOptions {
+  name: string;
+  copyConfig: boolean;
+}
+
+export interface ShareCodeResult {
+  code: string;
+  /** mods left out because they aren't on Modrinth */
+  skipped: string[];
 }
 
 // ── Backup & sync folder ─────────────────────────────────────────────────
@@ -307,11 +358,25 @@ export interface AstroApi {
   openProfileFolder(id: string): Promise<void>;
   exportProfile(id: string): Promise<string | null>;
   importProfile(): Promise<ImportResult | null>;
+  duplicateProfile(id: string, options: DuplicateOptions): Promise<Profile>;
+  /** builds the share code and puts it on the clipboard */
+  copyShareCode(id: string): Promise<ShareCodeResult>;
+  importShareCode(code: string): Promise<BatchResult>;
 
   listBundles(): Promise<Bundle[]>;
   installBundle(profileId: string, bundleId: string): Promise<BatchResult>;
   checkUpdates(profileId: string): Promise<ModUpdate[]>;
   applyUpdates(profileId: string, projectIds: string[]): Promise<BatchResult>;
+  /** the start-up check: respects the mod update settings, returns null when it is off or not applicable */
+  autoCheckUpdates(profileId: string): Promise<ModUpdateStatus | null>;
+  onModUpdates(listener: (status: ModUpdateStatus) => void): () => void;
+
+  getStats(): Promise<Record<string, ProfileStats>>;
+  onStats(listener: (stats: Record<string, ProfileStats>) => void): () => void;
+  onCrash(listener: (crash: CrashInfo) => void): () => void;
+  openCrashReport(profileId: string, fileName: string): Promise<void>;
+  openLatestLog(profileId: string): Promise<void>;
+  copyCrashDetails(): Promise<void>;
 
   scanLaunchers(): Promise<ImportCandidate[]>;
   pickImportFolder(): Promise<ImportCandidate[]>;

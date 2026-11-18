@@ -1,15 +1,18 @@
 import { app, BrowserWindow, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { ImportOptions, ImportRequest, LaunchEvent, LaunchOptions, ModSource, NewProfile, SearchRequest, SettingsPatch } from '@shared/types';
+import type { DuplicateOptions, ImportOptions, ImportRequest, LaunchEvent, LaunchOptions, ModSource, NewProfile, SearchRequest, SettingsPatch } from '@shared/types';
 import { backupNow, backupStatus, chooseBackupFolder, noteProfileDeleted, onBackupStatus, restoreProfiles, scheduleBackup, stopBackup } from './backup';
 import { addMicrosoftAccount } from './game/auth';
 import * as gameConsole from './game/console';
-import { gameState, killGame, launchProfile, onGameState } from './game/launch';
+import { analyzeExit, copyCrashDetails, openCrashReport, openLatestLog } from './game/crash';
+import { gameState, killGame, launchProfile, onGameExit, onGameState } from './game/launch';
 import { listGameVersions } from './game/loaders';
 import { importMany, pickFolder, scanAll } from './importers';
 import { BUNDLES, installBundle } from './profiles/bundles';
-import { applyUpdates, checkUpdates } from './profiles/updates';
+import { applyUpdates, autoCheckUpdates, checkUpdates } from './profiles/updates';
+import { copyShareCode, duplicateProfile, importShareCode } from './profiles/sharing';
+import { forgetProfile, getStats, onStats, recordLaunch, recordSession } from './stats';
 import { paths } from './paths';
 import { exportProfile, importProfile } from './profiles/packs';
 import {
@@ -59,6 +62,16 @@ function broadcast(channel: string, payload: unknown) {
 export function registerIpc(mainWindow: () => BrowserWindow | null): void {
   gameConsole.onLines((batch) => broadcast('console:lines', batch));
   onBackupStatus((status) => broadcast('backup:status', status));
+  onStats((stats) => broadcast('stats:changed', stats));
+
+  // Playtime + crash helper, both driven by the game process ending.
+  onGameExit((exit) => {
+    void recordSession(exit.profileId, exit.startedAt, exit.endedAt);
+    void analyzeExit(exit).then(
+      (crash) => crash && broadcast('game:crash', crash),
+      (err) => gameConsole.log(`Crash helper failed: ${(err as Error).message}`, 'launcher')
+    );
+  });
 
   // Hide the launcher while playing (if enabled) and bring it back when the game closes.
   onGameState(async (state) => {
@@ -88,7 +101,13 @@ export function registerIpc(mainWindow: () => BrowserWindow | null): void {
   ipcMain.handle('profiles:delete', async (_e, id: string) => {
     await deleteProfile(id);
     await noteProfileDeleted(id);
+    await forgetProfile(id);
   });
+  mutating('profiles:duplicate', (_e, id: string, options: DuplicateOptions) =>
+    duplicateProfile(String(id), { name: String(options?.name ?? '').slice(0, 64), copyConfig: Boolean(options?.copyConfig) })
+  );
+  ipcMain.handle('profiles:shareCode', (_e, id: string) => copyShareCode(String(id)));
+  mutating('profiles:importCode', (_e, code: unknown) => importShareCode(code));
   ipcMain.handle('profiles:open', (_e, id: string) => openProfileFolder(id));
   ipcMain.handle('profiles:export', (e, id: string) => exportProfile(windowOf(e), id));
   mutating('profiles:import', (e) => importProfile(windowOf(e)));
@@ -96,6 +115,11 @@ export function registerIpc(mainWindow: () => BrowserWindow | null): void {
   ipcMain.handle('bundles:list', () => BUNDLES);
   mutating('bundles:install', (_e, profileId: string, bundleId: string) => installBundle(profileId, String(bundleId)));
   ipcMain.handle('updates:check', (_e, profileId: string) => checkUpdates(profileId));
+  ipcMain.handle('updates:auto', async (_e, profileId: string) => {
+    const status = await autoCheckUpdates(String(profileId));
+    if (status?.applied?.installed.length) scheduleBackup();
+    return status;
+  });
   mutating('updates:apply', (_e, profileId: string, ids: string[]) =>
     applyUpdates(profileId, Array.isArray(ids) ? ids.map(String) : [])
   );
@@ -126,11 +150,18 @@ export function registerIpc(mainWindow: () => BrowserWindow | null): void {
     const send = (event: LaunchEvent) => {
       if (!e.sender.isDestroyed()) e.sender.send('game:event', event);
     };
-    const profile = await getProfile(id);
     try {
+      if (!gameState().running) {
+        send({ type: 'status', message: 'Checking mod updates…' });
+        const status = await autoCheckUpdates(id).catch(() => null);
+        if (status) broadcast('updates:status', status);
+      }
+      const profile = await getProfile(id);
       await launchProfile(profile, { server: options.server ? String(options.server) : undefined }, send);
       // re-read: launching may have installed Astro / performance mods into the profile
-      await saveProfile({ ...(await getProfile(id)), lastPlayed: Date.now() });
+      const startedAt = gameState().startedAt ?? Date.now();
+      await saveProfile({ ...(await getProfile(id)), lastPlayed: startedAt });
+      await recordLaunch(id, startedAt);
       scheduleBackup();
     } catch (err) {
       send({ type: 'error', message: (err as Error).message });
@@ -146,6 +177,11 @@ export function registerIpc(mainWindow: () => BrowserWindow | null): void {
     await mkdir(dir, { recursive: true });
     await shell.openPath(dir);
   });
+
+  ipcMain.handle('stats:get', () => getStats());
+  ipcMain.handle('crash:openReport', (_e, id: string, fileName: string) => openCrashReport(String(id), String(fileName)));
+  ipcMain.handle('crash:openLog', (_e, id: string) => openLatestLog(String(id)));
+  ipcMain.handle('crash:copy', () => copyCrashDetails());
 
   ipcMain.handle('settings:get', () => getPublicSettings());
   ipcMain.handle('app:version', () => app.getVersion());

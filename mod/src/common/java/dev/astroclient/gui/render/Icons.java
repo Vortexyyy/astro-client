@@ -59,7 +59,40 @@ public final class Icons {
     private static final String[] POTION = {
             "...###...", "....#....", "....#....", "...###...", "..#...#..", ".#.....#.", ".#######.", ".#######.", "..#####.."};
 
+    private static final String[] SWORD = {
+            ".......##", "......###", ".....###.", "....###..", "#..###...", ".####....", "..##.....", ".#.##....", "#...#...."};
+    private static final String[] QUIVER = {
+            "......###", ".......##", "......#.#", ".....#...", "....#....", "...#.....", "#.#......", ".##......", "###......"};
+    private static final String[] FLAG = {
+            ".#.......", ".######..", ".#######.", ".######..", ".#.......", ".#.......", ".#.......", ".#.......", "###......"};
+
+    /** 7×7 direction arrows, index 0 = straight ahead (up), then clockwise in 45° steps. */
+    public static final String[][] ARROWS = new String[8][];
+
+    static {
+        String[] up = {"...#...", "..###..", ".#####.", "#######", "..###..", "..###..", "..###.."};
+        String[] upRight = {"..#####", "....###", "...####", "..###.#", ".###...", "###....", ".#....."};
+        ARROWS[0] = up;
+        ARROWS[1] = upRight;
+        for (int i = 2; i < 8; i++) ARROWS[i] = rotate(ARROWS[i - 2]);
+    }
+
+    /** The icon turned 90° clockwise (square icons only). */
+    private static String[] rotate(String[] icon) {
+        int n = icon.length;
+        String[] out = new String[n];
+        for (int r = 0; r < n; r++) {
+            StringBuilder sb = new StringBuilder(n);
+            for (int c = 0; c < n; c++) sb.append(icon[n - 1 - c].charAt(r));
+            out[r] = sb.toString();
+        }
+        return out;
+    }
+
     private static final Map<String, String[]> MODULES = Map.ofEntries(
+            Map.entry("Combo", SWORD),
+            Map.entry("Item Counter", QUIVER),
+            Map.entry("Waypoints", FLAG),
             Map.entry("Toggle Sprint", SPRINT),
             Map.entry("Freelook", EYE),
             Map.entry("Zoom", ZOOM),

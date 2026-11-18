@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import type { Bundle, LoaderId, ModUpdate, Profile } from '@shared/types';
 import type { AppState } from '../App';
-import { astro, errorText } from '../api';
+import { astro, errorText, formatPlaytime, timeAgo } from '../api';
+import { DuplicateDialog, ImportCodeDialog } from '../components/ProfileDialogs';
 import VersionSelect, { defaultVersion, useGameVersions } from '../components/VersionSelect';
 import Icon from '../components/Icon';
 
@@ -77,13 +78,19 @@ export default function Profiles({ app }: { app: AppState }) {
   const [loader, setLoader] = useState<LoaderId>('fabric');
   const [memoryGb, setMemoryGb] = useState(4);
   const [chosenBundles, setChosenBundles] = useState<Set<string>>(new Set(['essentials', 'performance']));
-  const [updates, setUpdates] = useState<ModUpdate[] | null>(null);
+  const [dialog, setDialog] = useState<'duplicate' | 'importCode' | null>(null);
+  // "Everything is up to date" only shows after pressing the button, not after the silent start-up check
+  const [checkedId, setCheckedId] = useState<string | null>(null);
+  const updates: ModUpdate[] | null =
+    profile && app.modUpdates?.profileId === profile.id && (app.modUpdates.updates.length > 0 || checkedId === profile.id)
+      ? app.modUpdates.updates
+      : null;
+  const setUpdates = (list: ModUpdate[]) => profile && app.setModUpdates({ profileId: profile.id, updates: list });
+  const stats = profile ? app.stats[profile.id] : undefined;
 
   useEffect(() => {
     astro.listBundles().then(setBundles, () => undefined);
   }, []);
-
-  useEffect(() => setUpdates(null), [app.selectedId]);
 
   useEffect(() => {
     if (!mcVersion && versions.length) setMcVersion(defaultVersion(versions) ?? '');
@@ -143,6 +150,9 @@ export default function Profiles({ app }: { app: AppState }) {
           <p className="muted">Each profile has its own mods, configs and worlds.</p>
         </div>
         <div className="row">
+          <button className="btn-ghost" onClick={() => setDialog('importCode')} disabled={Boolean(busy)}>
+            <Icon name="download" size={14} /> Import code
+          </button>
           <button className="btn-ghost" onClick={app.openImport} disabled={Boolean(busy)}>
             Import from another launcher
           </button>
@@ -217,6 +227,7 @@ export default function Profiles({ app }: { app: AppState }) {
                 <strong>{p.name}</strong>
                 <span className="muted">
                   {p.mcVersion} · {p.loader === 'vanilla' ? 'Vanilla' : `${p.mods.length} mods`}
+                  {app.stats[p.id]?.launches ? ` · ${formatPlaytime(app.stats[p.id].playtimeMs)}` : ''}
                 </span>
               </button>
             </li>
@@ -263,6 +274,26 @@ export default function Profiles({ app }: { app: AppState }) {
                 >
                   Export
                 </button>
+                <button className="btn-ghost" disabled={Boolean(busy)} onClick={() => setDialog('duplicate')} title="Copy this profile's settings and mods into a new profile">
+                  Duplicate
+                </button>
+                <button
+                  className="btn-ghost"
+                  disabled={Boolean(busy)}
+                  title="Copy a short code with the version, loader, memory and Modrinth mod list (no files, paths or accounts)"
+                  onClick={() =>
+                    run('Sharing', async () => {
+                      const result = await astro.copyShareCode(profile.id);
+                      app.notify(
+                        result.skipped.length
+                          ? `Share code copied. Left out ${result.skipped.length} mod(s) not on Modrinth: ${result.skipped.join(', ')}`
+                          : 'Share code copied to the clipboard'
+                      );
+                    })
+                  }
+                >
+                  <Icon name="copy" size={14} /> Share code
+                </button>
                 <button
                   className="btn-danger"
                   disabled={Boolean(busy)}
@@ -285,6 +316,27 @@ export default function Profiles({ app }: { app: AppState }) {
                 </button>
               </div>
             </div>
+
+            <dl className="profile-stats" aria-label="Play stats">
+              <div>
+                <dt>Playtime</dt>
+                <dd>{formatPlaytime(stats?.playtimeMs ?? 0)}</dd>
+              </div>
+              <div>
+                <dt>Launches</dt>
+                <dd>{stats?.launches ?? 0}</dd>
+              </div>
+              <div>
+                <dt>Last played</dt>
+                <dd title={stats?.lastPlayed ? new Date(stats.lastPlayed).toLocaleString() : undefined}>
+                  {(stats?.lastPlayed ?? profile.lastPlayed) ? timeAgo((stats?.lastPlayed ?? profile.lastPlayed)!) : 'Never'}
+                </dd>
+              </div>
+              <div>
+                <dt>Last session</dt>
+                <dd>{stats?.lastSessionMs ? formatPlaytime(stats.lastSessionMs) : '—'}</dd>
+              </div>
+            </dl>
 
             {profile.loader !== 'vanilla' && (
               <>
@@ -328,7 +380,12 @@ export default function Profiles({ app }: { app: AppState }) {
                   <button
                     className="btn-ghost small"
                     disabled={Boolean(busy) || profile.mods.length === 0}
-                    onClick={() => run('Checking for updates', async () => setUpdates(await astro.checkUpdates(profile.id)))}
+                    onClick={() =>
+                      run('Checking for updates', async () => {
+                        setUpdates(await astro.checkUpdates(profile.id));
+                        setCheckedId(profile.id);
+                      })
+                    }
                   >
                     {busy === 'Checking for updates' ? 'Checking…' : 'Check for updates'}
                   </button>
@@ -353,6 +410,7 @@ export default function Profiles({ app }: { app: AppState }) {
                                 const result = await astro.applyUpdates(profile.id, updates.map((u) => u.projectId));
                                 app.upsert(result.profile);
                                 setUpdates([]);
+                                setCheckedId(profile.id);
                                 app.notify(
                                   `Updated ${result.installed.length} mod(s)${result.skipped.length ? `; ${result.skipped.length} failed` : ''}`,
                                   result.skipped.length ? 'error' : 'info'
@@ -403,6 +461,8 @@ export default function Profiles({ app }: { app: AppState }) {
           </div>
         )}
       </div>
+      {dialog === 'duplicate' && profile && <DuplicateDialog app={app} profile={profile} onClose={() => setDialog(null)} />}
+      {dialog === 'importCode' && <ImportCodeDialog app={app} onClose={() => setDialog(null)} />}
     </section>
   );
 }

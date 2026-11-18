@@ -1,5 +1,6 @@
 package dev.astroclient.compat;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.util.Identifier;
@@ -48,5 +49,12 @@ public final class Gfx {
     /** Draws the region (u, v, w, h) of a texW×texH texture at (x, y), one texel per GUI pixel. */
     public static void texture(DrawContext c, Identifier id, int x, int y, float u, float v, int w, int h, int texW, int texH) {
         c.drawTexture(id, x, y, u, v, w, h, texW, texH);
+    }
+
+    /** Same, multiplied by an ARGB tint. */
+    public static void texture(DrawContext c, Identifier id, int x, int y, float u, float v, int w, int h, int texW, int texH, int argb) {
+        RenderSystem.setShaderColor(((argb >> 16) & 0xFF) / 255f, ((argb >> 8) & 0xFF) / 255f, (argb & 0xFF) / 255f, (argb >>> 24) / 255f);
+        c.drawTexture(id, x, y, u, v, w, h, texW, texH);
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
     }
 }
